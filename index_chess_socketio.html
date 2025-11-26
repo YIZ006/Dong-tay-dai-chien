@@ -305,6 +305,7 @@
             gap: 5px;
             padding: 10px;
             border-top: 1px solid #555;
+            position: relative;
         }
         #chat-input {
             flex: 1;
@@ -318,6 +319,21 @@
         #chat-input:focus {
             outline: none;
             border-color: #3498db;
+        }
+        #chat-emoji-btn {
+            padding: 8px 10px;
+            background: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #chat-emoji-btn:hover {
+            background: #666;
         }
         #chat-send {
             padding: 8px 15px;
@@ -334,6 +350,70 @@
         #chat-send:disabled {
             background: #555;
             cursor: not-allowed;
+        }
+        /* Emoji Picker */
+        #emoji-picker {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            width: 280px;
+            height: 300px;
+            background: #2c3e50;
+            border: 2px solid #555;
+            border-radius: 10px;
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            margin-bottom: 5px;
+        }
+        #emoji-picker.show {
+            display: flex;
+        }
+        #emoji-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #555;
+            margin-bottom: 8px;
+        }
+        #emoji-picker-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #f1c40f;
+        }
+        #emoji-picker-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        #emoji-picker-body {
+            flex: 1;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            padding: 5px;
+        }
+        .emoji-item {
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            text-align: center;
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .emoji-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .emoji-item:active {
+            transform: scale(0.9);
         }
         #chat-button {
             position: fixed;
@@ -723,7 +803,17 @@
         <div id="chat-messages"></div>
         <div id="chat-input-container">
             <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200" onkeypress="handleChatKeyPress(event)">
+            <button id="chat-emoji-btn" onclick="toggleEmojiPicker()" title="Chọn emoji">😀</button>
             <button id="chat-send" onclick="sendChatMessage()">Gửi</button>
+            
+            <!-- Emoji Picker -->
+            <div id="emoji-picker">
+                <div id="emoji-picker-header">
+                    <h4>😀 Chọn Emoji</h4>
+                    <button id="emoji-picker-close" onclick="toggleEmojiPicker()">×</button>
+                </div>
+                <div id="emoji-picker-body"></div>
+            </div>
         </div>
     </div>
 
@@ -1323,6 +1413,98 @@
             sendChatMessage();
         }
     }
+    
+    // Emoji Picker Functions
+    const emojiList = [
+        '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+        '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+        '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+        '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
+        '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+        '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠',
+        '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨',
+        '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥',
+        '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧',
+        '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
+        '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙',
+        '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪',
+        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+        '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
+        '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️', '✡️',
+        '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉',
+        '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑',
+        '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴',
+        '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚',
+        '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲',
+        '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕',
+        '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷',
+        '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❓',
+        '❕', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️',
+        '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹',
+        '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤',
+        '🏧', '🚾', '♿', '🅿️', '🈳', '🈂️', '🛂', '🛃',
+        '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦',
+        '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🔢'
+    ];
+    
+    let emojiPickerVisible = false;
+    
+    function toggleEmojiPicker() {
+        const emojiPicker = document.getElementById('emoji-picker');
+        emojiPickerVisible = !emojiPickerVisible;
+        
+        if (emojiPickerVisible) {
+            emojiPicker.classList.add('show');
+            // Populate emoji picker if empty
+            if (emojiPicker.querySelector('#emoji-picker-body').children.length === 0) {
+                populateEmojiPicker();
+            }
+        } else {
+            emojiPicker.classList.remove('show');
+        }
+    }
+    
+    function populateEmojiPicker() {
+        const emojiPickerBody = document.getElementById('emoji-picker-body');
+        emojiPickerBody.innerHTML = '';
+        
+        emojiList.forEach(emoji => {
+            const emojiItem = document.createElement('div');
+            emojiItem.className = 'emoji-item';
+            emojiItem.textContent = emoji;
+            emojiItem.onclick = () => insertEmoji(emoji);
+            emojiPickerBody.appendChild(emojiItem);
+        });
+    }
+    
+    function insertEmoji(emoji) {
+        const chatInput = document.getElementById('chat-input');
+        const cursorPos = chatInput.selectionStart;
+        const textBefore = chatInput.value.substring(0, cursorPos);
+        const textAfter = chatInput.value.substring(cursorPos);
+        
+        chatInput.value = textBefore + emoji + textAfter;
+        chatInput.focus();
+        
+        // Set cursor position after inserted emoji
+        const newCursorPos = cursorPos + emoji.length;
+        chatInput.setSelectionRange(newCursorPos, newCursorPos);
+        
+        // Close emoji picker after selection
+        toggleEmojiPicker();
+    }
+    
+    // Close emoji picker when clicking outside
+    document.addEventListener('click', (e) => {
+        const emojiPicker = document.getElementById('emoji-picker');
+        const emojiBtn = document.getElementById('chat-emoji-btn');
+        
+        if (emojiPickerVisible && 
+            !emojiPicker.contains(e.target) && 
+            !emojiBtn.contains(e.target)) {
+            toggleEmojiPicker();
+        }
+    });
     
     
     // Initialize connection

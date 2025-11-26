@@ -674,10 +674,20 @@
 
     <div id="start-screen">
         <h1 style="color: var(--text-gold);">ĐÔNG TÂY ĐẠI CHIẾN</h1>
-        <p style="color: #ccc;">Chế độ: Online Multiplayer (Socket.io)</p>
+        <p style="color: #ccc;">Chọn chế độ chơi</p>
         
-        <!-- Network Mode Selection -->
-        <div class="mode-selector">
+        <!-- Game Mode Selection -->
+        <div class="mode-selector" style="margin-bottom: 20px;">
+            <button class="mode-btn" id="btn-online" onclick="selectGameMode('online')">
+                🌐 Chơi Online
+            </button>
+            <button class="mode-btn active" id="btn-bot" onclick="selectGameMode('bot')">
+                🤖 Chơi với BOT
+            </button>
+        </div>
+        
+        <!-- Network Mode Selection (only for online) -->
+        <div class="mode-selector" id="network-mode-selector" style="display: none;">
             <button class="mode-btn active" id="btn-local" onclick="selectMode('local')">
                 🌐 Mạng LAN (Local)
             </button>
@@ -893,6 +903,22 @@
     let playerSide = null; // "chess" hoặc "xiangqi"
     let isHost = false;
     let isOnlineGame = false;
+    
+    // ========== GAME MODE SELECTION ==========
+    function selectGameMode(mode) {
+        // Reset UI
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        
+        if (mode === 'online') {
+            document.getElementById('btn-online').classList.add('active');
+            document.getElementById('network-mode-selector').style.display = 'flex';
+            isBotMode = false;
+        } else if (mode === 'bot') {
+            document.getElementById('btn-bot').classList.add('active');
+            document.getElementById('network-mode-selector').style.display = 'none';
+            isBotMode = true;
+        }
+    }
     
     // ========== MODE SELECTION ==========
     function selectMode(mode) {
@@ -1854,6 +1880,8 @@
     let viewIndex = -1;
     let isReviewing = false;
     let pendingPromotion = null; // Quân Tốt đang chờ phong cấp
+    let isBotMode = false; // Chế độ chơi với BOT
+    let botSide = null; // Bên mà BOT chơi (chess hoặc xiangqi)
 
     // Elements
     const boardEl = document.getElementById("board");
@@ -1885,6 +1913,10 @@
     function startGame() {
         pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
         deadChess = []; deadXQ = [];
+        
+        if (isBotMode) {
+            startBotGame();
+        } else {
         let count = 0;
         const diceInterval = setInterval(() => {
             document.getElementById("dice-result").innerText = count % 2 ? "♚" : "帥";
@@ -1897,6 +1929,35 @@
                     document.getElementById("start-screen").style.display = "none";
                     saveState();
                     drawBoard();
+                    }, 1000);
+                }
+            }, 100);
+        }
+    }
+    
+    function startBotGame() {
+        // Người chơi chọn bên (mặc định là cờ Vua)
+        playerSide = "chess";
+        botSide = "xiangqi";
+        
+        // Tung xúc xắc để quyết định ai đi trước
+        let count = 0;
+        const diceInterval = setInterval(() => {
+            document.getElementById("dice-result").innerText = count % 2 ? "♚" : "帥";
+            count++;
+            if (count > 10) {
+                clearInterval(diceInterval);
+                currentTurn = Math.random() < 0.5 ? "chess" : "xiangqi";
+                document.getElementById("dice-result").innerText = currentTurn === "chess" ? "Bạn đi trước (Cờ Vua)" : "BOT đi trước (Cờ Tướng)";
+                setTimeout(() => {
+                    document.getElementById("start-screen").style.display = "none";
+                    saveState();
+                    drawBoard();
+                    
+                    // Nếu BOT đi trước, cho BOT đi ngay
+                    if (currentTurn === botSide) {
+                        setTimeout(() => botMakeMove(), 500);
+                    }
                 }, 1000);
             }
         }, 100);
@@ -1927,7 +1988,11 @@
         if (isCheckmate(currentTurn)) {
             isGameOver = true;
             const winner = currentTurn === "chess" ? "xiangqi" : "chess";
-            document.getElementById("winner-text").innerText = (winner === playerSide ? "BẠN" : "ĐỐI THỦ") + " THẮNG!";
+            if (isBotMode) {
+                document.getElementById("winner-text").innerText = (winner === playerSide ? "BẠN" : "BOT") + " THẮNG!";
+            } else {
+                document.getElementById("winner-text").innerText = (winner === playerSide ? "BẠN" : "ĐỐI THỦ") + " THẮNG!";
+            }
             document.getElementById("game-over").style.display = "flex";
         }
         
@@ -1939,6 +2004,112 @@
         }
         
         drawBoard();
+        
+        // Nếu đang chơi với BOT và đến lượt BOT, cho BOT đi
+        if (isBotMode && !isGameOver && currentTurn === botSide) {
+            setTimeout(() => botMakeMove(), 500);
+        }
+    }
+    
+    // ========== BOT AI ==========
+    function botMakeMove() {
+        if (isGameOver || currentTurn !== botSide) return;
+        
+        // Tìm tất cả các nước đi hợp lệ của BOT
+        const botPieces = pieces.filter(p => p.side === botSide);
+        const allMoves = [];
+        
+        for (const piece of botPieces) {
+            const moves = getSafeMoves(piece);
+            for (const move of moves) {
+                allMoves.push({ piece, move });
+            }
+        }
+        
+        if (allMoves.length === 0) {
+            // Không có nước đi hợp lệ - thua cờ
+            isGameOver = true;
+            document.getElementById("winner-text").innerText = "BẠN THẮNG!";
+            document.getElementById("game-over").style.display = "flex";
+            return;
+        }
+        
+        // Ưu tiên các nước đi có thể ăn quân đối thủ
+        const captureMoves = allMoves.filter(({ move }) => {
+            return pieces.some(p => p.r === move.r && p.c === move.c && p.side !== botSide);
+        });
+        
+        // Chọn nước đi
+        let chosenMove;
+        if (captureMoves.length > 0) {
+            // Ưu tiên ăn quân có giá trị cao hơn
+            captureMoves.sort((a, b) => {
+                const pieceA = pieces.find(p => p.r === a.move.r && p.c === a.move.c);
+                const pieceB = pieces.find(p => p.r === b.move.r && p.c === b.move.c);
+                const valueA = getPieceValue(pieceA);
+                const valueB = getPieceValue(pieceB);
+                return valueB - valueA; // Sắp xếp giảm dần
+            });
+            chosenMove = captureMoves[0];
+        } else {
+            // Chọn ngẫu nhiên một nước đi hợp lệ
+            chosenMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+        }
+        
+        // Thực hiện nước đi
+        const { piece, move } = chosenMove;
+        selectedPiece = piece;
+        
+        // Tìm quân bị ăn (nếu có)
+        const targetIdx = pieces.findIndex(p => p.r === move.r && p.c === move.c);
+        let captured = null;
+        if (targetIdx !== -1) {
+            captured = pieces[targetIdx];
+            pieces.splice(targetIdx, 1);
+            if (captured.side === "chess") deadChess.push(captured.type);
+            else deadXQ.push(captured.type);
+            playSound('capture');
+        } else {
+            playSound('move');
+        }
+        
+        // Xử lý nhập thành (castling) cho cờ Vua
+        if (move.isCastle) {
+            if (move.c === 6) {
+                const rook = pieces.find(p => p.r === (botSide === "chess" ? 0 : 9) && p.c === 7);
+                if (rook) { rook.c = 5; rook.hasMoved = true; }
+            }
+            if (move.c === 2) {
+                const rook = pieces.find(p => p.r === (botSide === "chess" ? 0 : 9) && p.c === 0);
+                if (rook) { rook.c = 3; rook.hasMoved = true; }
+            }
+        }
+        
+        // Cập nhật vị trí quân cờ
+        lastMove = { from: {r: piece.r, c: piece.c}, to: {r: move.r, c: move.c} };
+        piece.r = move.r;
+        piece.c = move.c;
+        if (piece.type === "king" || piece.type === "rook") piece.hasMoved = true;
+        
+        // Xử lý phong cấp tốt cờ Vua
+        if (piece.side === "chess" && piece.type === "pawn" && move.r === 9) {
+            // BOT tự động chọn Hậu
+            piece.type = "queen";
+        }
+        
+        // Kết thúc lượt
+        finishTurn();
+    }
+    
+    function getPieceValue(piece) {
+        if (!piece) return 0;
+        const values = {
+            // Cờ Vua
+            "pawn": 1, "knight": 3, "bishop": 3, "rook": 5, "queen": 9, "king": 100,
+            // Cờ Tướng
+            "tốt": 1, "mã": 4, "tượng": 2, "sĩ": 2, "xe": 9, "pháo": 4.5, "tướng": 100
+        };
+        return values[piece.type] || 0;
     }
 
     // --- HISTORY ---
@@ -2150,10 +2321,17 @@
         
         // Kiểm tra lượt chơi (cho cả offline và online)
         if (p.side !== currentTurn) {
-            if (!isOnlineGame) {
+            if (!isOnlineGame && !isBotMode) {
                 msgEl.innerText = "Không phải lượt của bạn!";
                 setTimeout(() => msgEl.innerText = "", 2000);
             }
+            return;
+        }
+        
+        // Trong chế độ BOT, chỉ cho phép chọn quân của mình
+        if (isBotMode && p.side !== playerSide) {
+            msgEl.innerText = "Bạn chỉ có thể chọn quân của mình!";
+            setTimeout(() => msgEl.innerText = "", 2000);
             return;
         }
         
@@ -2167,6 +2345,12 @@
         // Kiểm tra lượt chơi nếu đang online
         if (isOnlineGame && currentTurn !== playerSide) {
             msgEl.innerText = "Đang chờ đối thủ...";
+            setTimeout(() => msgEl.innerText = "", 2000);
+            return;
+        }
+        // Kiểm tra lượt chơi nếu đang chơi với BOT
+        if (isBotMode && currentTurn !== playerSide) {
+            msgEl.innerText = "Đang chờ BOT...";
             setTimeout(() => msgEl.innerText = "", 2000);
             return;
         }

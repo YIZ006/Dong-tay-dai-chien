@@ -282,6 +282,25 @@ io.on('connection', (socket) => {
         }
     });
     
+    // Chat message handler
+    socket.on('chatMessage', ({ roomCode, message }) => {
+        const room = rooms.get(roomCode);
+        if (!room) return;
+        
+        const playerData = room.players.get(socket.id);
+        if (!playerData) return;
+        
+        // Broadcast message to all players in room
+        io.to(roomCode).emit('chatMessage', {
+            playerId: socket.id,
+            playerName: playerData.name,
+            message: message,
+            timestamp: Date.now()
+        });
+        
+        console.log(`Chat message in room ${roomCode} from ${playerData.name}: ${message}`);
+    });
+    
     // Update game state
     socket.on('updateGameState', ({ roomCode, gameState }) => {
         const room = rooms.get(roomCode);

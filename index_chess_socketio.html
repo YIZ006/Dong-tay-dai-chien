@@ -221,6 +221,159 @@
         #status-bar { display: flex; gap: 20px; align-items: center; margin-bottom: 5px; }
         .badge { padding: 5px 25px; border-radius: 15px; font-weight: bold; border: 2px solid #fff; width: 250px; text-align: center; font-size: 1.1rem; }
         
+        /* Chat Box Styles */
+        #chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 400px;
+            background: rgba(34, 34, 34, 0.95);
+            border: 2px solid #555;
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            z-index: 50;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        #chat-container.show {
+            display: flex;
+        }
+        #chat-header {
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        #chat-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: #f1c40f;
+        }
+        #chat-toggle {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            max-height: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chat-message {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            max-width: 85%;
+        }
+        .chat-message.own {
+            background: #3498db;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .chat-message.other {
+            background: #555;
+            color: #fff;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .chat-message .sender {
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+            opacity: 0.9;
+        }
+        .chat-message .time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 3px;
+        }
+        #chat-input-container {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            border-top: 1px solid #555;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: #222;
+            color: white;
+            font-size: 0.9rem;
+        }
+        #chat-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        #chat-send {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        #chat-send:hover {
+            background: #2980b9;
+        }
+        #chat-send:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        #chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #3498db;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            z-index: 49;
+            display: none;
+        }
+        #chat-button:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+        #chat-button.show {
+            display: block;
+        }
+        #chat-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
         #start-screen, #game-over { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         button.main-btn { padding: 10px 30px; font-size: 1.2rem; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
         
@@ -557,6 +710,22 @@
         <div id="turn-badge" class="badge">...</div>
         <div id="message" style="color: red; font-weight: bold;"></div>
     </div>
+    
+    <!-- Chat Button -->
+    <button id="chat-button" onclick="toggleChat()" title="Mở Chat">💬</button>
+    
+    <!-- Chat Container -->
+    <div id="chat-container">
+        <div id="chat-header" onclick="toggleChat()">
+            <h3>💬 Chat</h3>
+            <button id="chat-toggle">−</button>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200" onkeypress="handleChatKeyPress(event)">
+            <button id="chat-send" onclick="sendChatMessage()">Gửi</button>
+        </div>
+    </div>
 
     <div class="game-wrapper">
         
@@ -764,8 +933,13 @@
         
         socket = io(currentServerURL, {
             reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionAttempts: 5
+            reconnectionDelay: 2000, // Tăng delay cho mạng yếu
+            reconnectionAttempts: 10, // Tăng số lần thử lại
+            reconnectionDelayMax: 10000, // Delay tối đa 10 giây
+            timeout: 20000, // Timeout 20 giây cho mạng yếu
+            transports: ['websocket', 'polling'], // Thử websocket trước, fallback polling
+            upgrade: true,
+            rememberUpgrade: false
         });
         
         setupSocketEvents();
@@ -776,26 +950,81 @@
         // Socket.io event handlers
         socket.on('connect', () => {
             console.log('Connected to server:', socket.id, 'at', currentServerURL);
-            if (msgEl) msgEl.innerText = '';
+            if (msgEl) {
+                msgEl.innerText = 'Đã kết nối đến server';
+                msgEl.style.color = '#2ecc71';
+                setTimeout(() => {
+                    if (msgEl) {
+                        msgEl.innerText = '';
+                        msgEl.style.color = '';
+                    }
+                }, 2000);
+            }
         });
         
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
+        socket.on('disconnect', (reason) => {
+            console.log('Disconnected from server:', reason);
             if (isOnlineGame && msgEl) {
-                msgEl.innerText = 'Mất kết nối với server!';
+                msgEl.innerText = 'Mất kết nối với server! Đang thử kết nối lại...';
+                msgEl.style.color = '#e74c3c';
+            }
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+            console.log('Reconnected after', attemptNumber, 'attempts');
+            if (msgEl) {
+                msgEl.innerText = 'Đã kết nối lại thành công!';
+                msgEl.style.color = '#2ecc71';
+                setTimeout(() => {
+                    if (msgEl) {
+                        msgEl.innerText = '';
+                        msgEl.style.color = '';
+                    }
+                }, 2000);
+            }
+        });
+        
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log('Reconnection attempt', attemptNumber);
+            if (msgEl) {
+                msgEl.innerText = `Đang thử kết nối lại... (Lần ${attemptNumber})`;
+                msgEl.style.color = '#f39c12';
+            }
+        });
+        
+        socket.on('reconnect_failed', () => {
+            console.error('Reconnection failed');
+            if (msgEl) {
+                msgEl.innerText = 'Không thể kết nối lại! Vui lòng refresh trang.';
+                msgEl.style.color = '#e74c3c';
             }
         });
         
         socket.on('connect_error', (error) => {
             console.error('Connection error:', error);
             if (msgEl) {
-                msgEl.innerText = `Không thể kết nối đến server: ${currentServerURL}`;
+                msgEl.innerText = `Không thể kết nối đến server: ${currentServerURL}. Đang thử lại...`;
                 msgEl.style.color = '#e74c3c';
             }
         });
         
         socket.on('error', (data) => {
-            alert(data.message || 'Có lỗi xảy ra!');
+            console.error('Socket error:', data);
+            const errorMsg = data.message || 'Có lỗi xảy ra!';
+            
+            // Hiển thị lỗi trong UI thay vì alert để không làm gián đoạn
+            if (msgEl) {
+                msgEl.innerText = errorMsg;
+                msgEl.style.color = '#e74c3c';
+                setTimeout(() => {
+                    if (msgEl) {
+                        msgEl.innerText = '';
+                        msgEl.style.color = '';
+                    }
+                }, 5000);
+            } else {
+                alert(errorMsg);
+            }
         });
     
         socket.on('roomCreated', ({ roomCode, playerId: pid }) => {
@@ -818,6 +1047,18 @@
         });
         
         socket.on('roomJoined', ({ roomCode, playerId: pid }) => {
+            // Clear timeout nếu có
+            if (joinRoomTimeout) {
+                clearTimeout(joinRoomTimeout);
+                joinRoomTimeout = null;
+            }
+            
+            // Reset button
+            if (joinRoomButton) {
+                joinRoomButton.disabled = false;
+                joinRoomButton.textContent = 'Tham Gia Phòng';
+            }
+            
             gameRoomId = roomCode;
             playerId = pid;
             isHost = false;
@@ -825,7 +1066,15 @@
             coinFlipped = false;
             diceRolled = false;
             
-            console.log('Room joined - isOnlineGame set to true', { roomCode, playerId: pid, isHost });
+            console.log('Room joined successfully:', { roomCode, playerId: pid, isHost });
+            
+            if (msgEl) {
+                msgEl.innerText = 'Đã tham gia phòng thành công!';
+                msgEl.style.color = '#2ecc71';
+                setTimeout(() => {
+                    if (msgEl) msgEl.innerText = '';
+                }, 2000);
+            }
             
             document.getElementById('room-menu').style.display = 'none';
             document.getElementById('room-info').style.display = 'block';
@@ -931,11 +1180,18 @@
             });
             
             // Show who goes first
-            if (firstTurnPlayer) {
+            if (firstTurnPlayer && diceResults) {
                 const resultEl = document.getElementById('dice-result-text');
                 const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
-                resultEl.innerHTML += `<br><br>🎯 <strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
+                const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
+                const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
+                resultEl.innerHTML += `<br><br>🎯 Player 1: ${player1Result} | Player 2: ${player2Result}<br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
             }
+            
+            // Hiển thị chat khi game bắt đầu
+            document.getElementById('chat-button').classList.add('show');
+            document.getElementById('chat-container').classList.add('show');
+            chatMinimized = false;
             
             // Khởi tạo game
             startOnlineGame(currentTurn);
@@ -968,8 +1224,106 @@
                 }, 3000);
             }
         });
+        
+        // Chat message received
+        socket.on('chatMessage', ({ playerId: senderId, playerName, message, timestamp }) => {
+            addChatMessage(senderId === playerId, playerName, message, timestamp);
+        });
     
     }
+    
+    // ========== CHAT FUNCTIONS ==========
+    let chatUnreadCount = 0;
+    let chatMinimized = false;
+    
+    function toggleChat() {
+        const chatContainer = document.getElementById('chat-container');
+        const chatButton = document.getElementById('chat-button');
+        
+        if (chatContainer.classList.contains('show')) {
+            chatContainer.classList.remove('show');
+            chatButton.classList.add('show');
+            chatMinimized = true;
+        } else {
+            chatContainer.classList.add('show');
+            chatButton.classList.remove('show');
+            chatMinimized = false;
+            chatUnreadCount = 0;
+            updateChatBadge();
+        }
+    }
+    
+    function addChatMessage(isOwn, senderName, message, timestamp) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${isOwn ? 'own' : 'other'}`;
+        
+        const senderSpan = document.createElement('div');
+        senderSpan.className = 'sender';
+        senderSpan.textContent = isOwn ? 'Bạn' : senderName;
+        
+        const messageText = document.createElement('div');
+        messageText.textContent = message;
+        
+        const timeSpan = document.createElement('div');
+        timeSpan.className = 'time';
+        const time = timestamp ? new Date(timestamp) : new Date();
+        timeSpan.textContent = time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        
+        messageDiv.appendChild(senderSpan);
+        messageDiv.appendChild(messageText);
+        messageDiv.appendChild(timeSpan);
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Nếu chat đang minimized, tăng unread count
+        if (chatMinimized && !isOwn) {
+            chatUnreadCount++;
+            updateChatBadge();
+        }
+    }
+    
+    function updateChatBadge() {
+        const chatButton = document.getElementById('chat-button');
+        let badge = document.getElementById('chat-badge');
+        
+        if (chatUnreadCount > 0) {
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = 'chat-badge';
+                chatButton.appendChild(badge);
+            }
+            badge.textContent = chatUnreadCount > 9 ? '9+' : chatUnreadCount;
+        } else {
+            if (badge) {
+                badge.remove();
+            }
+        }
+    }
+    
+    function sendChatMessage() {
+        const chatInput = document.getElementById('chat-input');
+        const message = chatInput.value.trim();
+        
+        if (!message || !isOnlineGame || !gameRoomId) return;
+        
+        // Gửi tin nhắn đến server
+        socket.emit('chatMessage', {
+            roomCode: gameRoomId,
+            message: message
+        });
+        
+        // Clear input
+        chatInput.value = '';
+    }
+    
+    function handleChatKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendChatMessage();
+        }
+    }
+    
     
     // Initialize connection
     connectToServer();
@@ -998,17 +1352,99 @@
         socket.emit('createRoom');
     }
     
+    let joinRoomTimeout = null;
+    let joinRoomButton = null;
+    
     function joinRoom() {
-        if (!socket || !socket.connected) {
-            alert('Chưa kết nối đến server! Vui lòng kiểm tra lại.');
-            connectToServer();
-            return;
-        }
-        const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+        const codeInput = document.getElementById('room-code-input');
+        const code = codeInput.value.trim().toUpperCase();
+        
         if (!code || code.length !== 6) {
-            alert('Mã phòng không hợp lệ!');
+            alert('Mã phòng không hợp lệ! Vui lòng nhập đúng 6 ký tự.');
+            codeInput.focus();
             return;
         }
+        
+        // Lấy button
+        joinRoomButton = document.querySelector('button[onclick="joinRoom()"]');
+        
+        // Kiểm tra kết nối
+        if (!socket) {
+            if (msgEl) {
+                msgEl.innerText = 'Đang kết nối đến server...';
+                msgEl.style.color = '#f39c12';
+            }
+            connectToServer();
+            // Đợi kết nối rồi thử lại
+            setTimeout(() => {
+                if (socket && socket.connected) {
+                    joinRoom();
+                } else {
+                    if (msgEl) {
+                        msgEl.innerText = 'Không thể kết nối đến server. Vui lòng kiểm tra lại kết nối mạng.';
+                        msgEl.style.color = '#e74c3c';
+                    }
+                }
+            }, 3000);
+            return;
+        }
+        
+        if (!socket.connected) {
+            if (msgEl) {
+                msgEl.innerText = 'Đang kết nối lại... Vui lòng đợi.';
+                msgEl.style.color = '#f39c12';
+            }
+            socket.connect();
+            // Đợi kết nối rồi thử lại
+            let retryCount = 0;
+            const checkConnection = setInterval(() => {
+                retryCount++;
+                if (socket.connected) {
+                    clearInterval(checkConnection);
+                    if (msgEl) msgEl.innerText = '';
+                    joinRoom(); // Gọi lại hàm
+                } else if (retryCount > 10) {
+                    clearInterval(checkConnection);
+                    if (msgEl) {
+                        msgEl.innerText = 'Không thể kết nối đến server. Vui lòng refresh trang.';
+                        msgEl.style.color = '#e74c3c';
+                    }
+                }
+            }, 1000);
+            return;
+        }
+        
+        // Hiển thị loading
+        if (joinRoomButton) {
+            joinRoomButton.disabled = true;
+            joinRoomButton.textContent = 'Đang tham gia...';
+        }
+        
+        if (msgEl) {
+            msgEl.innerText = 'Đang tham gia phòng...';
+            msgEl.style.color = '#3498db';
+        }
+        
+        // Clear timeout cũ nếu có
+        if (joinRoomTimeout) {
+            clearTimeout(joinRoomTimeout);
+        }
+        
+        // Set timeout cho joinRoom (15 giây cho mạng yếu)
+        joinRoomTimeout = setTimeout(() => {
+            if (joinRoomButton) {
+                joinRoomButton.disabled = false;
+                joinRoomButton.textContent = 'Tham Gia Phòng';
+            }
+            if (msgEl) {
+                msgEl.innerText = 'Không thể tham gia phòng. Có thể phòng không tồn tại hoặc mạng quá chậm.';
+                msgEl.style.color = '#e74c3c';
+            }
+            joinRoomTimeout = null;
+        }, 15000); // 15 giây timeout cho mạng yếu
+        
+        // Gửi request join room
+        console.log('Sending joinRoom request:', code);
         socket.emit('joinRoom', { roomCode: code });
     }
     
@@ -1141,35 +1577,33 @@
         dice.style.pointerEvents = 'none';
         
         setTimeout(() => {
-            const player1Result = Math.floor(Math.random() * 6) + 1;
-            const player2Result = Math.floor(Math.random() * 6) + 1;
+            // Chỉ tung 1 xúc xắc từ 1-6
+            const diceResult = Math.floor(Math.random() * 6) + 1;
             diceRolled = true;
             
-            const total = player1Result + player2Result;
             const playerName = isHost ? 'Player 1' : 'Player 2';
-            resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: ${player1Result} + ${player2Result} = <strong>${total}</strong><br>Đang chờ đối thủ...`;
+            resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br>Đang chờ đối thủ...`;
             resultEl.style.display = 'block';
             
-            // Send result to server
+            // Send result to server (chỉ gửi 1 kết quả)
             socket.emit('diceRollResult', { 
                 roomCode: gameRoomId, 
-                player1Result, 
-                player2Result 
+                diceResult: diceResult 
             });
         }, 1500);
     }
     
     // Listen for other player's dice result
-    socket.on('diceRolled', ({ playerId: otherPlayerId, playerName, player1Result, player2Result, total }) => {
+    socket.on('diceRolled', ({ playerId: otherPlayerId, playerName, diceResult }) => {
         if (otherPlayerId !== playerId) {
             const resultEl = document.getElementById('dice-result-text');
             if (diceRolled) {
                 // Both players have rolled, update display
                 const currentText = resultEl.innerHTML;
-                resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: ${player1Result} + ${player2Result} = <strong>${total}</strong>`);
+                resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong>`);
             } else {
                 // Other player rolled first
-                resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: ${player1Result} + ${player2Result} = <strong>${total}</strong><br>Đến lượt bạn tung xúc xắc!`;
+                resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br>Đến lượt bạn tung xúc xắc!`;
                 resultEl.style.display = 'block';
             }
         }

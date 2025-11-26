@@ -1,0 +1,59 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null || data.child('players').hasChildren()",
+        ".write": "auth != null || (!data.exists() && newData.child('host').exists()) || (data.child('players').numChildren() < 2 && newData.child('players').numChildren() <= 2)",
+        ".validate": "newData.hasChildren(['host', 'players', 'status', 'createdAt'])",
+        "host": {
+          ".validate": "newData.isString()"
+        },
+        "players": {
+          "$playerId": {
+            ".validate": "newData.hasChildren(['name', 'side'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50"
+            },
+            "side": {
+              ".validate": "newData.val() == 'chess' || newData.val() == 'xiangqi' || newData.val() == null"
+            }
+          }
+        },
+        "status": {
+          ".validate": "newData.val() == 'waiting' || newData.val() == 'playing' || newData.val() == 'finished'"
+        },
+        "createdAt": {
+          ".validate": "newData.val() == $now || newData.isNumber()"
+        }
+      }
+    },
+    "games": {
+      "$gameId": {
+        ".read": "auth != null || root.child('rooms').child($gameId).exists()",
+        ".write": "auth != null || root.child('rooms').child($gameId).child('status').val() == 'playing'",
+        ".validate": "newData.hasChildren(['pieces', 'deadChess', 'deadXQ', 'currentTurn', 'isGameOver'])",
+        "pieces": {
+          "$pieceId": {
+            ".validate": "newData.hasChildren(['type', 'side', 'r', 'c']) && newData.child('r').val() >= 0 && newData.child('r').val() < 10 && newData.child('c').val() >= 0 && newData.child('c').val() < 9"
+          }
+        },
+        "currentTurn": {
+          ".validate": "newData.val() == 'chess' || newData.val() == 'xiangqi'"
+        },
+        "isGameOver": {
+          ".validate": "newData.isBoolean()"
+        },
+        "lastMove": {
+          ".validate": "!newData.exists() || (newData.hasChildren(['from', 'to']) && newData.child('from').hasChildren(['r', 'c']) && newData.child('to').hasChildren(['r', 'c']))"
+        }
+      }
+    },
+    "userSessions": {
+      "$sessionId": {
+        ".read": "auth != null && auth.uid == $sessionId",
+        ".write": "auth != null && auth.uid == $sessionId"
+      }
+    }
+  }
+}
+

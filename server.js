@@ -18,6 +18,11 @@ const PORT = process.env.PORT || 3000;
 // Serve static files
 app.use(express.static(__dirname));
 
+// Route for root path - redirect to game
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index_chess_socketio.html'));
+});
+
 // API endpoint to get local IP
 app.get('/api/ip', (req, res) => {
     const os = require('os');

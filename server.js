@@ -86,24 +86,37 @@ io.on('connection', (socket) => {
     
     // Join room
     socket.on('joinRoom', ({ roomCode }) => {
+        console.log(`Join room request: ${roomCode} from ${socket.id}`);
+        
         if (!isValidRoomCode(roomCode)) {
-            socket.emit('error', { message: 'Mã phòng không hợp lệ!' });
+            console.log(`Invalid room code: ${roomCode}`);
+            socket.emit('error', { message: 'Mã phòng không hợp lệ! Vui lòng nhập đúng 6 ký tự.' });
             return;
         }
         
         const room = rooms.get(roomCode);
         if (!room) {
-            socket.emit('error', { message: 'Phòng không tồn tại!' });
+            console.log(`Room not found: ${roomCode}`);
+            socket.emit('error', { message: 'Phòng không tồn tại! Vui lòng kiểm tra lại mã phòng.' });
             return;
         }
         
         if (room.status !== 'waiting') {
-            socket.emit('error', { message: 'Phòng đã bắt đầu!' });
+            console.log(`Room already started: ${roomCode}, status: ${room.status}`);
+            socket.emit('error', { message: 'Phòng đã bắt đầu! Vui lòng tạo phòng mới.' });
             return;
         }
         
         if (room.players.size >= 2) {
-            socket.emit('error', { message: 'Phòng đã đầy!' });
+            console.log(`Room full: ${roomCode}`);
+            socket.emit('error', { message: 'Phòng đã đầy! Vui lòng tạo phòng mới.' });
+            return;
+        }
+        
+        // Check if player already in room
+        if (room.players.has(socket.id)) {
+            console.log(`Player already in room: ${socket.id}`);
+            socket.emit('roomJoined', { roomCode, playerId: socket.id });
             return;
         }
         
@@ -113,6 +126,7 @@ io.on('connection', (socket) => {
         
         socket.join(roomCode);
         socket.emit('roomJoined', { roomCode, playerId: socket.id });
+        console.log(`Player ${socket.id} joined room ${roomCode}`);
         
         // Notify all players in room
         io.to(roomCode).emit('playerJoined', {
@@ -199,22 +213,23 @@ io.on('connection', (socket) => {
         console.log(`Sides assigned in room: ${roomCode}, Player 1 chose: ${chosenSide}`);
     });
     
-    // Dice roll result (choose first turn) - both players roll
-    socket.on('diceRollResult', ({ roomCode, player1Result, player2Result }) => {
+    // Dice roll result (choose first turn) - both players roll 1 dice each (1-6)
+    socket.on('diceRollResult', ({ roomCode, diceResult }) => {
         const room = rooms.get(roomCode);
         if (!room || room.status !== 'choosingFirstTurn') return;
         
-        // Store dice results
+        // Store dice result (chỉ 1 kết quả từ 1-6)
         if (!room.diceResults) room.diceResults = {};
-        room.diceResults[socket.id] = { player1Result, player2Result, playerName: room.players.get(socket.id).name };
+        room.diceResults[socket.id] = { 
+            diceResult: diceResult, 
+            playerName: room.players.get(socket.id).name 
+        };
         
         // Broadcast dice result to all players
         io.to(roomCode).emit('diceRolled', {
             playerId: socket.id,
             playerName: room.players.get(socket.id).name,
-            player1Result,
-            player2Result,
-            total: player1Result + player2Result
+            diceResult: diceResult
         });
         
         // Check if both players have rolled
@@ -225,17 +240,17 @@ io.on('connection', (socket) => {
                 { id: playerIds[1], ...room.diceResults[playerIds[1]] }
             ];
             
-            const total1 = results[0].player1Result + results[0].player2Result;
-            const total2 = results[1].player1Result + results[1].player2Result;
+            const player1Result = results[0].diceResult;
+            const player2Result = results[1].diceResult;
             
-            // Player with higher total goes first
+            // Player with higher dice result goes first
             let firstTurn;
             let winnerId;
             
-            if (total1 > total2) {
+            if (player1Result > player2Result) {
                 winnerId = results[0].id;
                 firstTurn = room.players.get(results[0].id).side;
-            } else if (total2 > total1) {
+            } else if (player2Result > player1Result) {
                 winnerId = results[1].id;
                 firstTurn = room.players.get(results[1].id).side;
             } else {
@@ -256,11 +271,14 @@ io.on('connection', (socket) => {
                     side: data.side
                 })),
                 currentTurn: firstTurn,
-                diceResults: room.diceResults,
+                diceResults: {
+                    player1: { diceResult: player1Result, playerName: results[0].playerName },
+                    player2: { diceResult: player2Result, playerName: results[1].playerName }
+                },
                 firstTurnPlayer: room.players.get(winnerId).name
             });
             
-            console.log(`Game started in room: ${roomCode}, first turn: ${firstTurn} (${room.players.get(winnerId).name})`);
+            console.log(`Game started in room: ${roomCode}, Player 1: ${player1Result}, Player 2: ${player2Result}, first turn: ${firstTurn}`);
         }
     });
     

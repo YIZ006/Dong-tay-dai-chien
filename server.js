@@ -15,13 +15,13 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Serve static files
-app.use(express.static(__dirname));
-
-// Route for root path - redirect to game
+// Route for root path - serve game HTML
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index_chess_socketio.html'));
 });
+
+// Serve static files (CSS, JS, images, etc.)
+app.use(express.static(__dirname));
 
 // API endpoint to get local IP
 app.get('/api/ip', (req, res) => {
@@ -214,6 +214,7 @@ setInterval(() => {
 
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Open index_chess_socketio.html in your browser`);
+    console.log(`Open http://localhost:${PORT} or http://localhost:${PORT}/index_chess_socketio.html`);
+    console.log(`Game available at root path: /`);
 });
 

@@ -48,6 +48,11 @@
             display: flex;
             flex-direction: column;
             gap: 3px;
+            transition: transform 0.6s ease-in-out, flex-direction 0.6s ease-in-out;
+        }
+        .game-wrapper.board-rotated #graveyard-bar {
+            transform: rotate(180deg);
+            flex-direction: column-reverse;
         }
 
         .grave-row {
@@ -119,11 +124,39 @@
             padding: 10px; background: #5c4033; border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             position: relative;
+            transition: transform 0.6s ease-in-out;
+        }
+        #board-container.rotated {
+            transform: rotate(180deg);
         }
         #board {
             display: grid;
             grid-template-columns: repeat(9, var(--cell));
             grid-template-rows: repeat(10, var(--cell));
+            transition: transform 0.6s ease-in-out;
+        }
+        #board-container.rotated #board {
+            transform: rotate(180deg);
+        }
+        #board-container.rotated .piece {
+            transform: rotate(180deg);
+        }
+        #board-container.rotated .piece:hover {
+            transform: rotate(180deg) scale(1.1);
+        }
+        #board-container.rotated .piece.selected {
+            transform: rotate(180deg) scale(1.15);
+        }
+        #board-container.rotated .square {
+            transform: rotate(180deg);
+        }
+        #board-container.rotated .river span {
+            transform: rotate(180deg);
+        }
+        #board-container.rotated .move-dot {
+            transform: rotate(180deg);
+        }
+        #board {
             background: var(--board-bg);
             border: 2px solid #333;
             position: relative;
@@ -221,6 +254,146 @@
         
         #start-screen, #game-over { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         button.main-btn { padding: 10px 30px; font-size: 1.2rem; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+        
+        /* Player Info Styles */
+        .player-info { 
+            margin-top: 15px; 
+            padding: 15px; 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 300px;
+        }
+        .player-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.3);
+        }
+        .player-item.player1 {
+            border-left: 4px solid #3498db;
+        }
+        .player-item.player2 {
+            border-left: 4px solid #e74c3c;
+        }
+        .player-badge {
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+        .player-badge.player1 {
+            background: #3498db;
+            color: white;
+        }
+        .player-badge.player2 {
+            background: #e74c3c;
+            color: white;
+        }
+        .player-side {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        /* Coin Flip Animation */
+        .coin-container {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .coin {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 10px 30px rgba(241, 196, 15, 0.5);
+            cursor: pointer;
+            transition: transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .coin.flipping {
+            animation: coinFlip 2s ease-in-out;
+        }
+        @keyframes coinFlip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(1800deg) scale(1.2); }
+            100% { transform: rotateY(3600deg); }
+        }
+        .coin-side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: hidden;
+        }
+        .coin-heads { background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%); }
+        .coin-tails { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); transform: rotateY(180deg); }
+        
+        /* Dice Animation */
+        .dice-container {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .dice {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .dice.rolling {
+            animation: diceRoll 1.5s ease-in-out;
+        }
+        @keyframes diceRoll {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(0.9); }
+            75% { transform: rotate(270deg) scale(1.1); }
+        }
+        .result-display {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(241, 196, 15, 0.2);
+            border-radius: 8px;
+            border: 2px solid #f1c40f;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #f1c40f;
+            text-align: center;
+        }
+        .player-name-input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            border: 2px solid #555;
+            background: #333;
+            color: white;
+            width: 150px;
+            margin-left: 10px;
+        }
+        .player-name-input::placeholder { color: #888; }
 
     </style>
 </head>
@@ -229,8 +402,63 @@
     <div id="start-screen">
         <h1 style="color: var(--text-gold);">ĐÔNG TÂY ĐẠI CHIẾN</h1>
         <p style="color: #ccc;">Chế độ: Phong Cấp Tùy Chọn</p>
-        <div id="dice-result" style="font-size: 4rem; margin: 20px;">🎲</div>
-        <button class="main-btn" onclick="startGame()">Tung Xúc Xắc</button>
+        
+        <!-- Player Info -->
+        <div class="player-info" id="player-info">
+            <div class="player-item player1">
+                <div>
+                    <span class="player-badge player1">PLAYER 1</span>
+                    <input type="text" id="player1-name-input" class="player-name-input" placeholder="Nhập tên" value="Người chơi 1">
+                </div>
+                <div class="player-side" id="player1-side">-</div>
+            </div>
+            <div class="player-item player2">
+                <div>
+                    <span class="player-badge player2">PLAYER 2</span>
+                    <input type="text" id="player2-name-input" class="player-name-input" placeholder="Nhập tên" value="Người chơi 2">
+                </div>
+                <div class="player-side" id="player2-side">-</div>
+            </div>
+        </div>
+        
+        <!-- Coin Flip Section (Choose Side) -->
+        <div id="coin-flip-section" class="coin-container">
+            <div style="font-size: 1.2rem; color: #f1c40f; font-weight: bold; margin-bottom: 10px;">
+                🪙 TUNG ĐỒNG XU - CHỌN BÊN
+            </div>
+            <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 15px; text-align: center;">
+                Player 1 click vào đồng xu để tung
+            </div>
+            <div class="coin" id="coin" onclick="flipCoin()">
+                <div class="coin-side coin-heads">♚</div>
+                <div class="coin-side coin-tails">帥</div>
+            </div>
+            <div id="coin-result" class="result-display" style="display: none;"></div>
+        </div>
+        
+        <!-- Dice Section (Choose First Turn) -->
+        <div id="dice-section" class="dice-container" style="display: none;">
+            <div style="font-size: 1.2rem; color: #f1c40f; font-weight: bold; margin-bottom: 10px;">
+                🎲 TUNG XÚC XẮC - CHỌN NGƯỜI ĐI TRƯỚC
+            </div>
+            <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 15px; text-align: center;">
+                Cả 2 người chơi đều tung xúc xắc. Ai có tổng cao hơn sẽ đi trước!
+            </div>
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div>
+                    <div style="font-size: 0.9rem; color: #3498db; margin-bottom: 5px;">Player 1</div>
+                    <div class="dice" id="dice-player1" onclick="rollDice(1)">🎲</div>
+                    <div id="dice-result-player1" style="margin-top: 10px; color: #3498db; font-weight: bold; min-height: 20px;"></div>
+                </div>
+                <div style="font-size: 2rem; color: #f1c40f;">VS</div>
+                <div>
+                    <div style="font-size: 0.9rem; color: #e74c3c; margin-bottom: 5px;">Player 2</div>
+                    <div class="dice" id="dice-player2" onclick="rollDice(2)">🎲</div>
+                    <div id="dice-result-player2" style="margin-top: 10px; color: #e74c3c; font-weight: bold; min-height: 20px;"></div>
+                </div>
+            </div>
+            <div id="dice-final-result" class="result-display" style="display: none; margin-top: 20px;"></div>
+        </div>
     </div>
 
     <div id="game-over" style="display: none;">
@@ -240,6 +468,16 @@
 
     <div id="status-bar">
         <div id="turn-badge" class="badge">...</div>
+        <div id="player-info-bar" style="display: flex; gap: 20px; align-items: center;">
+            <div style="font-size: 0.9rem; color: #3498db;">
+                <strong>Player 1:</strong> <span id="current-player1-name">Người chơi 1</span> 
+                <span id="current-player1-side" style="margin-left: 5px;"></span>
+            </div>
+            <div style="font-size: 0.9rem; color: #e74c3c;">
+                <strong>Player 2:</strong> <span id="current-player2-name">Người chơi 2</span>
+                <span id="current-player2-side" style="margin-left: 5px;"></span>
+            </div>
+        </div>
         <div id="message" style="color: red; font-weight: bold;"></div>
     </div>
 
@@ -340,6 +578,16 @@
     let lastMove = null; 
     let gameHistory = []; 
     let viewIndex = -1;
+    
+    // Player info
+    let player1Name = "Người chơi 1";
+    let player2Name = "Người chơi 2";
+    let player1Side = null;
+    let player2Side = null;
+    let coinFlipped = false;
+    let diceRolled = { player1: false, player2: false };
+    let diceResults = { player1: null, player2: null };
+    let boardRotated = false; // Track board rotation state
     let isReviewing = false;
     let pendingPromotion = null; // Quân Tốt đang chờ phong cấp
 
@@ -369,25 +617,133 @@
         ...[0,2,4,6,8].map(c => ({ type: "tốt", side: "xiangqi", r: 6, c })),
     ];
 
-    // --- START ---
-    function startGame() {
-        pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
-        deadChess = []; deadXQ = [];
-        let count = 0;
-        const diceInterval = setInterval(() => {
-            document.getElementById("dice-result").innerText = count % 2 ? "♚" : "帥";
-            count++;
-            if (count > 10) {
-                clearInterval(diceInterval);
-                currentTurn = Math.random() < 0.5 ? "chess" : "xiangqi";
-                document.getElementById("dice-result").innerText = currentTurn === "chess" ? "Cờ Vua đi trước" : "Cờ Tướng đi trước";
-                setTimeout(() => {
-                    document.getElementById("start-screen").style.display = "none";
-                    saveState();
-                    drawBoard();
-                }, 1000);
+    // --- COIN FLIP ---
+    function flipCoin() {
+        if (coinFlipped) return;
+        
+        const coin = document.getElementById('coin');
+        const resultEl = document.getElementById('coin-result');
+        
+        coin.classList.add('flipping');
+        coin.style.pointerEvents = 'none';
+        
+        setTimeout(() => {
+            const result = Math.random() < 0.5 ? 'heads' : 'tails';
+            coinFlipped = true;
+            
+            // Assign sides based on coin flip
+            if (result === 'heads') {
+                // Heads = Cờ Vua
+                player1Side = 'chess';
+                player2Side = 'xiangqi';
+            } else {
+                // Tails = Cờ Tướng
+                player1Side = 'xiangqi';
+                player2Side = 'chess';
             }
-        }, 100);
+            
+            const resultText = result === 'heads' 
+                ? '🪙 MẶT NGỰA (Cờ Vua) - Player 1 chơi Cờ Vua, Player 2 chơi Cờ Tướng'
+                : '🪙 MẶT TƯỚNG (Cờ Tướng) - Player 1 chơi Cờ Tướng, Player 2 chơi Cờ Vua';
+            
+            resultEl.textContent = resultText;
+            resultEl.style.display = 'block';
+            
+            // Update player sides display
+            document.getElementById('player1-side').textContent = player1Side === 'chess' ? '🏰 Cờ Vua (Trắng)' : '⛩️ Cờ Tướng (Đỏ)';
+            document.getElementById('player2-side').textContent = player2Side === 'chess' ? '🏰 Cờ Vua (Trắng)' : '⛩️ Cờ Tướng (Đỏ)';
+            
+            // Show dice section
+            setTimeout(() => {
+                document.getElementById('coin-flip-section').style.display = 'none';
+                document.getElementById('dice-section').style.display = 'block';
+            }, 2000);
+        }, 2000);
+    }
+    
+    // --- DICE ROLL ---
+    function rollDice(playerNum) {
+        if (diceRolled[`player${playerNum}`]) return;
+        
+        const dice = document.getElementById(`dice-player${playerNum}`);
+        const resultEl = document.getElementById(`dice-result-player${playerNum}`);
+        
+        dice.classList.add('rolling');
+        dice.style.pointerEvents = 'none';
+        
+        setTimeout(() => {
+            const player1Result = Math.floor(Math.random() * 6) + 1;
+            const player2Result = Math.floor(Math.random() * 6) + 1;
+            const total = player1Result + player2Result;
+            
+            diceRolled[`player${playerNum}`] = true;
+            diceResults[`player${playerNum}`] = { player1Result, player2Result, total };
+            
+            resultEl.textContent = `${player1Result} + ${player2Result} = ${total}`;
+            
+            // Check if both players have rolled
+            if (diceRolled.player1 && diceRolled.player2) {
+                const total1 = diceResults.player1.total;
+                const total2 = diceResults.player2.total;
+                
+                let firstTurn;
+                let winnerName;
+                
+                if (total1 > total2) {
+                    firstTurn = player1Side;
+                    winnerName = player1Name;
+                } else if (total2 > total1) {
+                    firstTurn = player2Side;
+                    winnerName = player2Name;
+                } else {
+                    // Tie - random
+                    const randomWinner = Math.random() < 0.5 ? 1 : 2;
+                    firstTurn = randomWinner === 1 ? player1Side : player2Side;
+                    winnerName = randomWinner === 1 ? player1Name : player2Name;
+                }
+                
+                currentTurn = firstTurn;
+                const firstTurnSide = firstTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
+                
+                const finalResultEl = document.getElementById('dice-final-result');
+                finalResultEl.innerHTML = `
+                    <div>🎯 <strong>${winnerName}</strong> đi trước (${firstTurnSide})</div>
+                    <div style="font-size: 0.9rem; margin-top: 10px; color: #aaa;">
+                        Player 1: ${total1} | Player 2: ${total2}
+                    </div>
+                `;
+                finalResultEl.style.display = 'block';
+                
+                // Start game after 2 seconds
+                setTimeout(() => {
+                    startGame();
+                }, 2000);
+            }
+        }, 1500);
+    }
+    
+    // --- START GAME ---
+    function startGame() {
+        // Get player names
+        player1Name = document.getElementById('player1-name-input').value.trim() || 'Người chơi 1';
+        player2Name = document.getElementById('player2-name-input').value.trim() || 'Người chơi 2';
+        
+        pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
+        deadChess = []; 
+        deadXQ = [];
+        
+        // Update player info bar
+        document.getElementById('current-player1-name').textContent = player1Name;
+        document.getElementById('current-player2-name').textContent = player2Name;
+        document.getElementById('current-player1-side').textContent = player1Side === 'chess' ? '(🏰 Cờ Vua)' : '(⛩️ Cờ Tướng)';
+        document.getElementById('current-player2-side').textContent = player2Side === 'chess' ? '(🏰 Cờ Vua)' : '(⛩️ Cờ Tướng)';
+        
+        // Rotate board for initial turn
+        rotateBoardForTurn(currentTurn);
+        
+        document.getElementById("start-screen").style.display = "none";
+        saveState();
+        drawBoard();
     }
 
     // --- LOGIC PHONG CẤP ---
@@ -406,10 +762,20 @@
     function finishTurn() {
         selectedPiece = null;
         currentTurn = currentTurn === "chess" ? "xiangqi" : "chess";
+        
+        // Rotate board for new turn
+        rotateBoardForTurn(currentTurn);
 
         if (isCheckmate(currentTurn)) {
             isGameOver = true;
-            document.getElementById("winner-text").innerText = (currentTurn === "chess" ? "CỜ TƯỚNG" : "CỜ VUA") + " THẮNG!";
+            // Determine winner
+            const winnerSide = currentTurn === "chess" ? "xiangqi" : "chess";
+            let winnerName = '';
+            if (player1Side && player2Side) {
+                winnerName = winnerSide === player1Side ? player1Name : player2Name;
+            }
+            const winnerText = winnerName ? `${winnerName.toUpperCase()} THẮNG!` : (winnerSide === "chess" ? "CỜ VUA" : "CỜ TƯỚNG") + " THẮNG!";
+            document.getElementById("winner-text").innerText = winnerText;
             document.getElementById("game-over").style.display = "flex";
         }
         
@@ -577,8 +943,40 @@
         });
     }
 
+    // Rotate board based on current turn
+    function rotateBoardForTurn(turn) {
+        const boardContainer = document.getElementById('board-container');
+        const graveyardBar = document.getElementById('graveyard-bar');
+        const gameWrapper = document.querySelector('.game-wrapper');
+        
+        // Rotate if it's Xiangqi (Cờ Tướng) turn - they play from bottom
+        const shouldRotate = turn === "xiangqi";
+        
+        if (shouldRotate !== boardRotated) {
+            boardRotated = shouldRotate;
+            
+            if (boardRotated) {
+                boardContainer.classList.add('rotated');
+                gameWrapper.classList.add('board-rotated');
+            } else {
+                boardContainer.classList.remove('rotated');
+                gameWrapper.classList.remove('board-rotated');
+            }
+        }
+    }
+    
     function updateStatusUI(turn, _pieces) {
-        turnBadge.innerText = turn === "chess" ? "Lượt: Cờ Vua" : "Lượt: Cờ Tướng";
+        // Rotate board for current turn
+        rotateBoardForTurn(turn);
+        
+        // Determine which player's turn it is
+        let currentPlayerName = '';
+        if (player1Side && player2Side) {
+            currentPlayerName = turn === player1Side ? player1Name : player2Name;
+        }
+        
+        const turnText = turn === "chess" ? "Cờ Vua" : "Cờ Tướng";
+        turnBadge.innerText = currentPlayerName ? `Lượt: ${currentPlayerName} (${turnText})` : `Lượt: ${turnText}`;
         turnBadge.style.background = turn === "chess" ? "#fff" : "#cc0000";
         turnBadge.style.color = turn === "chess" ? "#000" : "#fff";
         msgEl.innerText = isKingInCheck(turn, _pieces) ? "⚠️ CHIẾU TƯỚNG!" : "";

@@ -117,29 +117,124 @@ io.on('connection', (socket) => {
             }))
         });
         
-        // Start game if 2 players
+        // When 2 players join, start coin flip to choose sides
         if (room.players.size === 2) {
-            const firstTurn = Math.random() < 0.5 ? 'chess' : 'xiangqi';
-            const sides = firstTurn === 'chess' ? ['chess', 'xiangqi'] : ['xiangqi', 'chess'];
-            
-            let idx = 0;
-            room.players.forEach((player, playerId) => {
-                player.side = sides[idx++];
+            room.status = 'choosingSides';
+            io.to(roomCode).emit('readyToChooseSides', {
+                players: Array.from(room.players.entries()).map(([id, data]) => ({
+                    id,
+                    name: data.name
+                }))
             });
+            console.log(`Ready to choose sides in room: ${roomCode}`);
+        }
+    });
+    
+    // Coin flip result (choose sides) - only host can flip
+    socket.on('coinFlipResult', ({ roomCode, result }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'choosingSides') return;
+        
+        // Only host can flip coin
+        if (socket.id !== room.host) {
+            socket.emit('error', { message: 'Chỉ Player 1 mới được tung đồng xu!' });
+            return;
+        }
+        
+        // result: 'heads' (Cờ Vua) or 'tails' (Cờ Tướng)
+        const playerIds = Array.from(room.players.keys());
+        const hostId = room.host;
+        const guestId = playerIds.find(id => id !== hostId);
+        
+        if (result === 'heads') {
+            // Heads = Cờ Vua
+            room.players.get(hostId).side = 'chess';
+            room.players.get(guestId).side = 'xiangqi';
+        } else {
+            // Tails = Cờ Tướng
+            room.players.get(hostId).side = 'xiangqi';
+            room.players.get(guestId).side = 'chess';
+        }
+        
+        // Broadcast coin flip result to all players
+        io.to(roomCode).emit('coinFlipCompleted', { result });
+        
+        // Broadcast side assignment
+        io.to(roomCode).emit('sidesAssigned', {
+            players: Array.from(room.players.entries()).map(([id, data]) => ({
+                id,
+                name: data.name,
+                side: data.side
+            }))
+        });
+        
+        // Move to dice roll phase
+        room.status = 'choosingFirstTurn';
+        console.log(`Sides assigned in room: ${roomCode}, result: ${result}`);
+    });
+    
+    // Dice roll result (choose first turn) - both players roll
+    socket.on('diceRollResult', ({ roomCode, player1Result, player2Result }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'choosingFirstTurn') return;
+        
+        // Store dice results
+        if (!room.diceResults) room.diceResults = {};
+        room.diceResults[socket.id] = { player1Result, player2Result, playerName: room.players.get(socket.id).name };
+        
+        // Broadcast dice result to all players
+        io.to(roomCode).emit('diceRolled', {
+            playerId: socket.id,
+            playerName: room.players.get(socket.id).name,
+            player1Result,
+            player2Result,
+            total: player1Result + player2Result
+        });
+        
+        // Check if both players have rolled
+        if (Object.keys(room.diceResults).length === 2) {
+            const playerIds = Array.from(room.players.keys());
+            const results = [
+                { id: playerIds[0], ...room.diceResults[playerIds[0]] },
+                { id: playerIds[1], ...room.diceResults[playerIds[1]] }
+            ];
+            
+            const total1 = results[0].player1Result + results[0].player2Result;
+            const total2 = results[1].player1Result + results[1].player2Result;
+            
+            // Player with higher total goes first
+            let firstTurn;
+            let winnerId;
+            
+            if (total1 > total2) {
+                winnerId = results[0].id;
+                firstTurn = room.players.get(results[0].id).side;
+            } else if (total2 > total1) {
+                winnerId = results[1].id;
+                firstTurn = room.players.get(results[1].id).side;
+            } else {
+                // Tie - random
+                const randomWinner = Math.random() < 0.5 ? results[0] : results[1];
+                winnerId = randomWinner.id;
+                firstTurn = room.players.get(randomWinner.id).side;
+            }
             
             room.status = 'playing';
             room.currentTurn = firstTurn;
             
+            // Start game
             io.to(roomCode).emit('gameStarted', {
                 players: Array.from(room.players.entries()).map(([id, data]) => ({
                     id,
                     name: data.name,
                     side: data.side
                 })),
-                currentTurn: firstTurn
+                currentTurn: firstTurn,
+                diceResults: room.diceResults,
+                firstTurnPlayer: room.players.get(winnerId).name
             });
             
-            console.log(`Game started in room: ${roomCode}`);
+            console.log(`Game started in room: ${roomCode}, first turn: ${firstTurn} (${room.players.get(winnerId).name})`);
         }
     });
     

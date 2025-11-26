@@ -312,8 +312,11 @@
         
         <!-- Local Network Info -->
         <div class="local-info" id="local-info" style="display: none;">
-            <strong>Mạng LAN:</strong> Chơi với người cùng WiFi<br>
-            Server: <span id="local-server-url">http://localhost:3000</span>
+            <strong>🌐 Mạng LAN:</strong> Chơi với người cùng WiFi<br>
+            <strong>Server URL:</strong> <span id="local-server-url" style="color: #f1c40f; font-weight: bold;">Đang tải...</span><br>
+            <div style="margin-top: 8px; font-size: 0.85rem; color: #aaa;">
+                Người chơi khác vào URL này trên điện thoại/máy tính cùng WiFi
+            </div>
         </div>
         
         <div class="room-container" id="room-menu">
@@ -434,10 +437,21 @@
         // Update server URL
         if (mode === 'local') {
             currentServerURL = window.location.origin;
+            // Show local info immediately
+            const localInfo = document.getElementById('local-info');
+            if (localInfo) {
+                localInfo.style.display = 'block';
+            }
+            // Update IP info
             updateLocalServerInfo();
         } else {
             const urlInput = document.getElementById('server-url-input').value.trim();
             currentServerURL = urlInput || window.location.origin;
+            // Hide local info
+            const localInfo = document.getElementById('local-info');
+            if (localInfo) {
+                localInfo.style.display = 'none';
+            }
         }
         
         // Reconnect socket if already connected
@@ -448,20 +462,88 @@
     }
     
     function updateLocalServerInfo() {
-        // Try to get local IP
+        const urlElement = document.getElementById('local-server-url');
+        if (!urlElement) return;
+        
+        // Try to get local IP from server
         fetch(`${currentServerURL}/api/ip`)
             .then(res => res.json())
             .then(data => {
-                if (data.ip && data.ip !== 'localhost') {
-                    document.getElementById('local-server-url').textContent = `http://${data.ip}:3000`;
+                if (data.ip && data.ip !== 'localhost' && data.ip !== '127.0.0.1') {
+                    urlElement.textContent = `http://${data.ip}:3000`;
+                    urlElement.style.color = '#f1c40f';
                 } else {
-                    document.getElementById('local-server-url').textContent = 'http://localhost:3000';
+                    // Fallback: try to get IP from WebRTC
+                    getLocalIP().then(ip => {
+                        if (ip) {
+                            urlElement.textContent = `http://${ip}:3000`;
+                            urlElement.style.color = '#f1c40f';
+                        } else {
+                            urlElement.textContent = 'http://localhost:3000';
+                            urlElement.style.color = '#e74c3c';
+                            urlElement.title = 'Không thể lấy IP tự động. Hãy kiểm tra IP bằng lệnh ipconfig';
+                        }
+                    });
                 }
             })
             .catch(() => {
-                // Fallback to localhost
-                document.getElementById('local-server-url').textContent = 'http://localhost:3000';
+                // Fallback: try WebRTC method
+                getLocalIP().then(ip => {
+                    if (ip) {
+                        urlElement.textContent = `http://${ip}:3000`;
+                        urlElement.style.color = '#f1c40f';
+                    } else {
+                        urlElement.textContent = 'http://localhost:3000';
+                        urlElement.style.color = '#e74c3c';
+                        urlElement.title = 'Không thể lấy IP tự động. Chạy ipconfig để lấy IP';
+                    }
+                });
             });
+    }
+    
+    // Get local IP using WebRTC (fallback method)
+    function getLocalIP() {
+        return new Promise((resolve) => {
+            const RTCPeerConnection = window.RTCPeerConnection || 
+                                     window.mozRTCPeerConnection || 
+                                     window.webkitRTCPeerConnection;
+            
+            if (!RTCPeerConnection) {
+                resolve(null);
+                return;
+            }
+            
+            const pc = new RTCPeerConnection({
+                iceServers: []
+            });
+            
+            pc.createDataChannel('');
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    const candidate = event.candidate.candidate;
+                    const match = candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+                    if (match) {
+                        const ip = match[1];
+                        // Filter out localhost and invalid IPs
+                        if (ip && !ip.startsWith('127.') && !ip.startsWith('169.254.')) {
+                            pc.close();
+                            resolve(ip);
+                            return;
+                        }
+                    }
+                }
+            };
+            
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .catch(() => resolve(null));
+            
+            // Timeout after 2 seconds
+            setTimeout(() => {
+                pc.close();
+                resolve(null);
+            }, 2000);
+        });
     }
     
     function connectToServer() {

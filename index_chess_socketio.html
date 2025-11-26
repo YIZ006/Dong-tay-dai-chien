@@ -1436,6 +1436,26 @@
     function handlePieceClick(p) {
         if (isGameOver || isReviewing || pendingPromotion) return;
         
+        // Nếu đã chọn quân và click vào quân đối thủ, thử di chuyển/ăn
+        if (selectedPiece && selectedPiece.side !== p.side) {
+            // Kiểm tra lượt chơi nếu đang online
+            if (isOnlineGame) {
+                if (currentTurn !== playerSide) {
+                    msgEl.innerText = "Không phải lượt của bạn!";
+                    setTimeout(() => msgEl.innerText = "", 2000);
+                    return;
+                }
+                if (selectedPiece.side !== playerSide) {
+                    msgEl.innerText = "Bạn chỉ có thể di chuyển quân của mình!";
+                    setTimeout(() => msgEl.innerText = "", 2000);
+                    return;
+                }
+            }
+            // Cho phép ăn quân đối thủ
+            tryMoveTo(p.r, p.c);
+            return;
+        }
+        
         // Kiểm tra lượt chơi - chỉ được chọn quân của mình khi đến lượt mình
         if (isOnlineGame) {
             // Kiểm tra lượt chơi trước
@@ -1444,9 +1464,9 @@
                 setTimeout(() => msgEl.innerText = "", 2000);
                 return;
             }
-            // Kiểm tra quân cờ có phải của mình không
+            // Chỉ cho phép chọn quân của mình (không cho chọn quân đối thủ khi chưa chọn quân)
             if (p.side !== playerSide) {
-                msgEl.innerText = "Bạn chỉ có thể di chuyển quân của mình!";
+                msgEl.innerText = "Bạn chỉ có thể chọn quân của mình!";
                 setTimeout(() => msgEl.innerText = "", 2000);
                 return;
             }
@@ -1461,14 +1481,8 @@
             return;
         }
         
-        // Nếu đã chọn quân và click vào quân đối thủ, thử di chuyển
-        if (selectedPiece && selectedPiece.side !== p.side) { 
-            tryMoveTo(p.r, p.c); 
-            return; 
-        }
-        
-        // Chọn quân cờ
-        selectedPiece = p; 
+        // Chọn quân cờ của mình
+        selectedPiece = p;
         drawBoard();
     }
 

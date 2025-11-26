@@ -1865,6 +1865,7 @@
     
     function startOnlineGame(firstTurn) {
         isOnlineGame = true;
+        isBotMode = false; // Đảm bảo không phải bot mode
         pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
         deadChess = [];
         deadXQ = [];
@@ -2022,8 +2023,9 @@
                     drawBoard();
                     
                     // Nếu BOT đi trước, cho BOT đi ngay
-                    if (currentTurn === botSide) {
-                        setTimeout(() => botMakeMove(), 500);
+                    if (currentTurn === botSide && isBotMode) {
+                        console.log('Bot goes first, making move...');
+                        setTimeout(() => botMakeMove(), 1000);
                     }
                 }, 1000);
             }
@@ -2082,14 +2084,20 @@
         drawBoard();
         
         // Nếu đang chơi với BOT và đến lượt BOT, cho BOT đi
-        if (isBotMode && !isGameOver && currentTurn === botSide) {
-            setTimeout(() => botMakeMove(), 500);
+        if (isBotMode && !isGameOver && currentTurn === botSide && botSide) {
+            console.log('Calling botMakeMove from finishTurn...');
+            setTimeout(() => botMakeMove(), 800);
         }
     }
     
     // ========== BOT AI ==========
     function botMakeMove() {
-        if (isGameOver || currentTurn !== botSide) return;
+        if (isGameOver || currentTurn !== botSide || !isBotMode) {
+            console.log('Bot cannot move:', { isGameOver, currentTurn, botSide, isBotMode });
+            return;
+        }
+        
+        console.log('Bot making move...', { botSide, currentTurn });
         
         // Tìm tất cả các nước đi hợp lệ của BOT
         const botPieces = pieces.filter(p => p.side === botSide);
@@ -2102,12 +2110,25 @@
             }
         }
         
+        console.log('Bot found moves:', allMoves.length);
+        
         if (allMoves.length === 0) {
-            // Không có nước đi hợp lệ - thua cờ
-            isGameOver = true;
-            document.getElementById("winner-text").innerText = "BẠN THẮNG!";
-            document.getElementById("game-over").style.display = "flex";
-            return;
+            // Kiểm tra xem có phải là chiếu bí không
+            if (isKingInCheck(botSide)) {
+                // BOT bị chiếu bí - người chơi thắng
+                isGameOver = true;
+                document.getElementById("winner-text").innerText = "BẠN THẮNG!";
+                document.getElementById("game-over").style.display = "flex";
+                drawBoard();
+                return;
+            } else {
+                // Hòa cờ (stalemate) - không có nước đi hợp lệ nhưng không bị chiếu
+                isGameOver = true;
+                document.getElementById("winner-text").innerText = "HÒA CỜ!";
+                document.getElementById("game-over").style.display = "flex";
+                drawBoard();
+                return;
+            }
         }
         
         // Ưu tiên các nước đi có thể ăn quân đối thủ
@@ -2196,6 +2217,12 @@
             // BOT tự động chọn Hậu
             piece.type = "queen";
         }
+        
+        // Cập nhật lastMove
+        lastMove = { from: {r: piece.r, c: piece.c}, to: {r: move.r, c: move.c} };
+        
+        // Vẽ lại bàn cờ trước khi kết thúc lượt
+        drawBoard();
         
         // Kết thúc lượt
         finishTurn();

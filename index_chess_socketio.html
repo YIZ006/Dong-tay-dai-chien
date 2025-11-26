@@ -1738,8 +1738,37 @@
         if (p.type==="xe") checkLine([[1,0],[-1,0],[0,1],[0,-1]]);
         if (p.type==="pháo") checkLine([[1,0],[-1,0],[0,1],[0,-1]], true);
         if (p.type==="mã") {
-            [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]].forEach(([dr,dc]) => {
-                let nr=p.r+dr, nc=p.c+dc; if(inside(nr,nc) && !isAlly(nr,nc,p.side, _pieces)) moves.push({r:nr, c:nc});
+            // Mã đi chữ L với 8 hướng: (2,1), (2,-1), (-2,1), (-2,-1), (1,2), (1,-2), (-1,2), (-1,-2)
+            // Mỗi hướng có 1 điểm chặn (điểm đầu tiên trên đường đi)
+            // Nếu điểm chặn có quân → không thể đi hướng đó (luật cản mã)
+            const maMoves = [
+                { dr: 2, dc: 1, blockR: 1, blockC: 0 },   // Đi xuống phải → chặn ở (1,0)
+                { dr: 2, dc: -1, blockR: 1, blockC: 0 },  // Đi xuống trái → chặn ở (1,0)
+                { dr: -2, dc: 1, blockR: -1, blockC: 0 }, // Đi lên phải → chặn ở (-1,0)
+                { dr: -2, dc: -1, blockR: -1, blockC: 0 },// Đi lên trái → chặn ở (-1,0)
+                { dr: 1, dc: 2, blockR: 0, blockC: 1 },    // Đi phải xuống → chặn ở (0,1)
+                { dr: 1, dc: -2, blockR: 0, blockC: -1 }, // Đi trái xuống → chặn ở (0,-1)
+                { dr: -1, dc: 2, blockR: 0, blockC: 1 },    // Đi phải lên → chặn ở (0,1)
+                { dr: -1, dc: -2, blockR: 0, blockC: -1 }  // Đi trái lên → chặn ở (0,-1)
+            ];
+            
+            maMoves.forEach(({dr, dc, blockR, blockC}) => {
+                // Kiểm tra điểm chặn (điểm đầu tiên trên đường đi)
+                let blockRPos = p.r + blockR;
+                let blockCPos = p.c + blockC;
+                
+                // Nếu điểm chặn có quân → không thể đi hướng này (bị cản mã)
+                if (isOccupied(blockRPos, blockCPos, _pieces)) {
+                    return; // Bỏ qua hướng này
+                }
+                
+                // Nếu điểm chặn không có quân → có thể đi
+                let nr = p.r + dr;
+                let nc = p.c + dc;
+                
+                if (inside(nr, nc) && !isAlly(nr, nc, p.side, _pieces)) {
+                    moves.push({r: nr, c: nc});
+                }
             });
         }
         if (p.type==="tốt") {

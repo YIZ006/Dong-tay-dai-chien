@@ -802,8 +802,11 @@
             gameRoomId = roomCode;
             playerId = pid;
             isHost = true;
+            isOnlineGame = true; // Set online game mode khi vào phòng
             coinFlipped = false;
             diceRolled = false;
+            
+            console.log('Room created - isOnlineGame set to true', { roomCode, playerId: pid, isHost });
             
             document.getElementById('room-menu').style.display = 'none';
             document.getElementById('room-info').style.display = 'block';
@@ -818,8 +821,11 @@
             gameRoomId = roomCode;
             playerId = pid;
             isHost = false;
+            isOnlineGame = true; // Set online game mode khi vào phòng
             coinFlipped = false;
             diceRolled = false;
+            
+            console.log('Room joined - isOnlineGame set to true', { roomCode, playerId: pid, isHost });
             
             document.getElementById('room-menu').style.display = 'none';
             document.getElementById('room-info').style.display = 'block';
@@ -845,7 +851,11 @@
         });
         
         socket.on('readyToChooseSides', ({ players: playersList }) => {
-            console.log('readyToChooseSides received', playersList);
+            console.log('readyToChooseSides received', playersList, { isOnlineGame, gameRoomId, isHost, playerId });
+            
+            // Đảm bảo isOnlineGame được set
+            isOnlineGame = true;
+            
             document.getElementById('waiting-msg').style.display = 'none';
             document.getElementById('coin-flip-section').style.display = 'block';
             document.getElementById('room-info').style.display = 'block';
@@ -869,13 +879,13 @@
                 coinElement.style.pointerEvents = 'auto';
                 // Đảm bảo event listener được gắn
                 coinElement.onclick = flipCoin;
-                console.log('Player 1 - Coin flip enabled, isHost:', isHost);
+                console.log('Player 1 - Coin flip enabled', { isOnlineGame, gameRoomId, isHost, playerId });
             } else {
                 coinInstruction.textContent = 'Đang chờ Player 1 tung đồng xu...';
                 coinElement.style.cursor = 'not-allowed';
                 coinElement.style.pointerEvents = 'none';
                 coinElement.onclick = null;
-                console.log('Player 2 - Coin flip disabled, isHost:', isHost);
+                console.log('Player 2 - Coin flip disabled', { isOnlineGame, gameRoomId, isHost, playerId });
             }
         });
         

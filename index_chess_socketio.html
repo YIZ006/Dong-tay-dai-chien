@@ -312,8 +312,21 @@
             justify-content: center;
             backface-visibility: hidden;
         }
-        .coin-heads { background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%); }
-        .coin-tails { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); transform: rotateY(180deg); }
+        .coin-heads { 
+            background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%); 
+        }
+        .coin-tails { 
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); 
+            transform: rotateY(180deg);
+        }
+        /* Mặt sau đồng xu - trống, không có hình */
+        .coin-tails::before {
+            content: '';
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(0,0,0,0.1) 100%);
+            border-radius: 50%;
+        }
         
         /* Dice Animation */
         .dice-container {
@@ -486,9 +499,25 @@
                 </div>
                 <div class="coin" id="coin" onclick="flipCoin()">
                     <div class="coin-side coin-heads">♚</div>
-                    <div class="coin-side coin-tails">帥</div>
+                    <div class="coin-side coin-tails">
+                        <!-- Mặt sau trống, không có hình gì -->
+                    </div>
                 </div>
                 <div id="coin-result" class="result-display" style="display: none;"></div>
+                <!-- Player 1 choice buttons (only shown to Player 1 after coin flip) -->
+                <div id="player1-choice" style="display: none; margin-top: 20px;">
+                    <div style="font-size: 1rem; color: #f1c40f; margin-bottom: 10px;">
+                        Bạn thấy mặt ngựa! Chọn bên bạn muốn chơi:
+                    </div>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button class="main-btn" onclick="chooseSide('chess')" style="background: #3498db;">
+                            🏰 Chơi Cờ Vua (Trắng)
+                        </button>
+                        <button class="main-btn" onclick="chooseSide('xiangqi')" style="background: #e74c3c;">
+                            ⛩️ Chơi Cờ Tướng (Đỏ)
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <!-- Dice Section (Choose First Turn) -->
@@ -802,8 +831,10 @@
         });
         
         socket.on('readyToChooseSides', ({ players: playersList }) => {
+            console.log('readyToChooseSides received', playersList);
             document.getElementById('waiting-msg').style.display = 'none';
             document.getElementById('coin-flip-section').style.display = 'block';
+            document.getElementById('room-info').style.display = 'block';
             
             // Update player names
             playersList.forEach((p, idx) => {
@@ -827,6 +858,7 @@
         
         socket.on('sidesAssigned', ({ players: playersList }) => {
             document.getElementById('coin-flip-section').style.display = 'none';
+            document.getElementById('player1-choice').style.display = 'none';
             document.getElementById('dice-section').style.display = 'block';
             
             // Update player sides
@@ -949,6 +981,8 @@
     
     // Coin flip function - only host can flip
     let coinFlipped = false;
+    let coinResult = null; // Store coin result for Player 1 to choose side
+    
     function flipCoin() {
         if (coinFlipped || !isOnlineGame || !gameRoomId || !isHost) {
             if (!isHost) {
@@ -966,29 +1000,71 @@
         setTimeout(() => {
             const result = Math.random() < 0.5 ? 'heads' : 'tails';
             coinFlipped = true;
+            coinResult = result;
             
-            const resultText = result === 'heads' 
-                ? '🪙 MẶT NGỰA (Cờ Vua) - Player 1 chơi Cờ Vua, Player 2 chơi Cờ Tướng'
-                : '🪙 MẶT TƯỚNG (Cờ Tướng) - Player 1 chơi Cờ Tướng, Player 2 chơi Cờ Vua';
-            
-            resultEl.textContent = resultText;
+            // Player 1 sees heads (horse) or tails (empty)
+            // Player 2 will see the opposite
+            if (result === 'heads') {
+                resultEl.textContent = '🪙 Bạn thấy MẶT NGỰA!';
+                // Show choice buttons for Player 1
+                document.getElementById('player1-choice').style.display = 'block';
+            } else {
+                resultEl.textContent = '🪙 Bạn thấy MẶT ÚP (mặt sau)!';
+                // Show choice buttons for Player 1
+                document.getElementById('player1-choice').style.display = 'block';
+            }
             resultEl.style.display = 'block';
             
-            // Send result to server
-            socket.emit('coinFlipResult', { roomCode: gameRoomId, result });
+            // Send result to server (Player 1 sees result, Player 2 sees opposite)
+            socket.emit('coinFlipResult', { roomCode: gameRoomId, result, playerId: playerId });
         }, 2000);
     }
     
-    // Listen for coin flip result from other player
-    socket.on('coinFlipCompleted', ({ result }) => {
-        if (!isHost) {
-            const resultEl = document.getElementById('coin-result');
-            const resultText = result === 'heads' 
-                ? '🪙 MẶT NGỰA (Cờ Vua) - Player 1 chơi Cờ Vua, Player 2 chơi Cờ Tướng'
-                : '🪙 MẶT TƯỚNG (Cờ Tướng) - Player 1 chơi Cờ Tướng, Player 2 chơi Cờ Vua';
-            resultEl.textContent = resultText;
-            resultEl.style.display = 'block';
+    // Function for Player 1 to choose side
+    function chooseSide(chosenSide) {
+        if (!isHost || !coinResult) return;
+        
+        // Determine sides based on Player 1's choice
+        // If Player 1 chose chess, they play chess, Player 2 plays xiangqi
+        // If Player 1 chose xiangqi, they play xiangqi, Player 2 plays chess
+        socket.emit('player1ChooseSide', { 
+            roomCode: gameRoomId, 
+            chosenSide: chosenSide,
+            coinResult: coinResult 
+        });
+        
+        // Hide choice buttons
+        document.getElementById('player1-choice').style.display = 'none';
+    }
+    
+    // Listen for coin flip result from server
+    socket.on('coinFlipCompleted', ({ result, playerView }) => {
+        const resultEl = document.getElementById('coin-result');
+        const coin = document.getElementById('coin');
+        
+        // Update coin display based on what player sees
+        coin.classList.remove('flipping');
+        coin.style.pointerEvents = 'none';
+        
+        // playerView: 'heads' for Player 1, 'tails' for Player 2 (opposite)
+        if (playerView === 'heads') {
+            // Player 1 sees heads (horse) - show horse side facing up
+            coin.style.transform = 'rotateY(0deg)';
+            if (isHost) {
+                resultEl.textContent = '🪙 Bạn thấy MẶT NGỰA! Chọn bên bạn muốn chơi:';
+                coinResult = 'heads';
+                document.getElementById('player1-choice').style.display = 'block';
+            } else {
+                resultEl.textContent = '🪙 Player 1 đang chọn bên...';
+            }
+        } else {
+            // Player 2 sees tails (empty/upside down) - show empty side facing up
+            coin.style.transform = 'rotateY(180deg)';
+            if (!isHost) {
+                resultEl.textContent = '🪙 Bạn thấy MẶT ÚP (mặt sau trống) - Đang chờ Player 1 chọn bên...';
+            }
         }
+        resultEl.style.display = 'block';
     });
     
     // Dice roll function - both players roll
@@ -1359,15 +1435,41 @@
     // --- INTERACTION ---
     function handlePieceClick(p) {
         if (isGameOver || isReviewing || pendingPromotion) return;
-        // Kiểm tra lượt chơi nếu đang online
-        if (isOnlineGame && p.side !== playerSide) {
-            msgEl.innerText = "Không phải lượt của bạn!";
-            setTimeout(() => msgEl.innerText = "", 2000);
+        
+        // Kiểm tra lượt chơi - chỉ được chọn quân của mình khi đến lượt mình
+        if (isOnlineGame) {
+            // Kiểm tra lượt chơi trước
+            if (currentTurn !== playerSide) {
+                msgEl.innerText = "Không phải lượt của bạn!";
+                setTimeout(() => msgEl.innerText = "", 2000);
+                return;
+            }
+            // Kiểm tra quân cờ có phải của mình không
+            if (p.side !== playerSide) {
+                msgEl.innerText = "Bạn chỉ có thể di chuyển quân của mình!";
+                setTimeout(() => msgEl.innerText = "", 2000);
+                return;
+            }
+        }
+        
+        // Kiểm tra lượt chơi (cho cả offline và online)
+        if (p.side !== currentTurn) {
+            if (!isOnlineGame) {
+                msgEl.innerText = "Không phải lượt của bạn!";
+                setTimeout(() => msgEl.innerText = "", 2000);
+            }
             return;
         }
-        if (selectedPiece && selectedPiece.side !== p.side) { tryMoveTo(p.r, p.c); return; }
-        if (p.side !== currentTurn) return;
-        selectedPiece = p; drawBoard();
+        
+        // Nếu đã chọn quân và click vào quân đối thủ, thử di chuyển
+        if (selectedPiece && selectedPiece.side !== p.side) { 
+            tryMoveTo(p.r, p.c); 
+            return; 
+        }
+        
+        // Chọn quân cờ
+        selectedPiece = p; 
+        drawBoard();
     }
 
     function handleSquareClick(r, c) {
@@ -1382,6 +1484,26 @@
     }
 
     function tryMoveTo(r, c) {
+        if (!selectedPiece) return;
+        
+        // Kiểm tra lượt chơi và quân cờ trước khi di chuyển
+        if (isOnlineGame) {
+            if (currentTurn !== playerSide) {
+                msgEl.innerText = "Không phải lượt của bạn!";
+                setTimeout(() => msgEl.innerText = "", 2000);
+                selectedPiece = null;
+                drawBoard();
+                return;
+            }
+            if (selectedPiece.side !== playerSide) {
+                msgEl.innerText = "Bạn chỉ có thể di chuyển quân của mình!";
+                setTimeout(() => msgEl.innerText = "", 2000);
+                selectedPiece = null;
+                drawBoard();
+                return;
+            }
+        }
+        
         let moves = getSafeMoves(selectedPiece);
         let move = moves.find(m => m.r === r && m.c === c);
 
@@ -1412,6 +1534,10 @@
             }
 
             finishTurn();
+        } else {
+            // Nếu không có nước đi hợp lệ
+            msgEl.innerText = "Nước đi không hợp lệ!";
+            setTimeout(() => msgEl.innerText = "", 2000);
         }
     }
 

@@ -15,12 +15,18 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Route for root path - serve game HTML
+// Route for root path - serve game HTML (MUST be before static files)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index_chess_socketio.html'));
+    const filePath = path.join(__dirname, 'index_chess_socketio.html');
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error('Error sending file:', err);
+            res.status(500).send('Error loading game file: ' + err.message);
+        }
+    });
 });
 
-// Serve static files (CSS, JS, images, etc.)
+// Serve static files (CSS, JS, images, etc.) - MUST be after specific routes
 app.use(express.static(__dirname));
 
 // API endpoint to get local IP
@@ -131,7 +137,7 @@ io.on('connection', (socket) => {
     });
     
     // Coin flip result (choose sides) - only host can flip
-    socket.on('coinFlipResult', ({ roomCode, result }) => {
+    socket.on('coinFlipResult', ({ roomCode, result, playerId }) => {
         const room = rooms.get(roomCode);
         if (!room || room.status !== 'choosingSides') return;
         
@@ -141,23 +147,43 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // result: 'heads' (Cờ Vua) or 'tails' (Cờ Tướng)
+        // Store coin result
+        room.coinResult = result;
+        
+        // Player 1 sees the result (heads = horse, tails = empty)
+        // Player 2 sees the opposite (if Player 1 sees heads, Player 2 sees tails)
         const playerIds = Array.from(room.players.keys());
         const hostId = room.host;
         const guestId = playerIds.find(id => id !== hostId);
         
-        if (result === 'heads') {
-            // Heads = Cờ Vua
-            room.players.get(hostId).side = 'chess';
-            room.players.get(guestId).side = 'xiangqi';
-        } else {
-            // Tails = Cờ Tướng
-            room.players.get(hostId).side = 'xiangqi';
-            room.players.get(guestId).side = 'chess';
+        // Send different views to each player
+        socket.emit('coinFlipCompleted', { result, playerView: result }); // Player 1 sees result
+        socket.to(roomCode).emit('coinFlipCompleted', { 
+            result, 
+            playerView: result === 'heads' ? 'tails' : 'heads' // Player 2 sees opposite
+        });
+        
+        console.log(`Coin flipped in room: ${roomCode}, Player 1 sees: ${result}, Player 2 sees: ${result === 'heads' ? 'tails' : 'heads'}`);
+    });
+    
+    // Player 1 chooses side after seeing coin result
+    socket.on('player1ChooseSide', ({ roomCode, chosenSide, coinResult }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'choosingSides') return;
+        
+        // Only host can choose side
+        if (socket.id !== room.host) {
+            socket.emit('error', { message: 'Chỉ Player 1 mới được chọn bên!' });
+            return;
         }
         
-        // Broadcast coin flip result to all players
-        io.to(roomCode).emit('coinFlipCompleted', { result });
+        const playerIds = Array.from(room.players.keys());
+        const hostId = room.host;
+        const guestId = playerIds.find(id => id !== hostId);
+        
+        // Assign sides based on Player 1's choice
+        room.players.get(hostId).side = chosenSide;
+        room.players.get(guestId).side = chosenSide === 'chess' ? 'xiangqi' : 'chess';
         
         // Broadcast side assignment
         io.to(roomCode).emit('sidesAssigned', {
@@ -170,7 +196,7 @@ io.on('connection', (socket) => {
         
         // Move to dice roll phase
         room.status = 'choosingFirstTurn';
-        console.log(`Sides assigned in room: ${roomCode}, result: ${result}`);
+        console.log(`Sides assigned in room: ${roomCode}, Player 1 chose: ${chosenSide}`);
     });
     
     // Dice roll result (choose first turn) - both players roll

@@ -138,15 +138,47 @@
         #board-container.rotated #board {
             transform: rotate(180deg);
         }
-        #board-container.rotated .piece {
+        /* Pieces always face their player's perspective */
+        /* Chess pieces (white) always face up (normal view) */
+        .piece.chess-side {
+            transform: rotate(0deg);
+        }
+        .piece.chess-side:hover {
+            transform: rotate(0deg) scale(1.1);
+        }
+        .piece.chess-side.selected {
+            transform: rotate(0deg) scale(1.15);
+        }
+        /* Xiangqi pieces (red) always face down (rotated view when board is normal) */
+        .piece.xq-side {
             transform: rotate(180deg);
         }
-        #board-container.rotated .piece:hover {
+        .piece.xq-side:hover {
             transform: rotate(180deg) scale(1.1);
         }
-        #board-container.rotated .piece.selected {
+        .piece.xq-side.selected {
             transform: rotate(180deg) scale(1.15);
         }
+        /* When board is rotated (Xiangqi player's view), reverse piece rotations */
+        #board-container.rotated .piece.chess-side {
+            transform: rotate(180deg);
+        }
+        #board-container.rotated .piece.chess-side:hover {
+            transform: rotate(180deg) scale(1.1);
+        }
+        #board-container.rotated .piece.chess-side.selected {
+            transform: rotate(180deg) scale(1.15);
+        }
+        #board-container.rotated .piece.xq-side {
+            transform: rotate(0deg);
+        }
+        #board-container.rotated .piece.xq-side:hover {
+            transform: rotate(0deg) scale(1.1);
+        }
+        #board-container.rotated .piece.xq-side.selected {
+            transform: rotate(0deg) scale(1.15);
+        }
+        /* Rotate board elements when board is rotated */
         #board-container.rotated .square {
             transform: rotate(180deg);
         }
@@ -239,8 +271,6 @@
         .palace-backslash { background: linear-gradient(to bottom left, transparent calc(50% - 1px), rgba(0,0,0,0.2) 50%, transparent calc(50% + 1px)); }
 
         .piece { width: 85%; height: 85%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s; position: relative; z-index: 10; }
-        .piece:hover { transform: scale(1.1); }
-        .piece.selected { transform: scale(1.15); filter: drop-shadow(0 0 5px yellow); }
         .in-check { background-color: rgba(255, 0, 0, 0.6) !important; box-shadow: 0 0 15px red; border-radius: 50%; }
 
         .piece.chess-side { font-size: 40px; color: #fdf5e6; text-shadow: 1px 1px 2px black; }
@@ -741,9 +771,9 @@
         // Rotate board for initial turn
         rotateBoardForTurn(currentTurn);
         
-        document.getElementById("start-screen").style.display = "none";
-        saveState();
-        drawBoard();
+                    document.getElementById("start-screen").style.display = "none";
+                    saveState();
+                    drawBoard();
     }
 
     // --- LOGIC PHONG CẤP ---
@@ -892,7 +922,7 @@
         
         // Nhóm và đếm quân Trắng bị bắt
         let chessCount = {};
-        dChess.forEach(p => {
+        dChess.forEach(p => { 
             chessCount[p] = (chessCount[p] || 0) + 1;
         });
         
@@ -913,12 +943,12 @@
                 el.appendChild(countEl);
             }
             
-            graveTop.appendChild(el);
+            graveTop.appendChild(el); 
         });
 
         // Nhóm và đếm quân Đỏ bị bắt
         let xqCount = {};
-        dXQ.forEach(p => {
+        dXQ.forEach(p => { 
             xqCount[p] = (xqCount[p] || 0) + 1;
         });
         
@@ -939,17 +969,18 @@
                 el.appendChild(countEl);
             }
             
-            graveBot.appendChild(el);
+            graveBot.appendChild(el); 
         });
     }
 
-    // Rotate board based on current turn
+    // Rotate board based on current player's perspective
+    // Xiangqi player sees from bottom (rotated), Chess player sees from top (normal)
     function rotateBoardForTurn(turn) {
         const boardContainer = document.getElementById('board-container');
-        const graveyardBar = document.getElementById('graveyard-bar');
         const gameWrapper = document.querySelector('.game-wrapper');
         
-        // Rotate if it's Xiangqi (Cờ Tướng) turn - they play from bottom
+        // Rotate board when it's Xiangqi (Cờ Tướng) player's turn
+        // This gives them their default perspective (from bottom)
         const shouldRotate = turn === "xiangqi";
         
         if (shouldRotate !== boardRotated) {
@@ -964,7 +995,7 @@
             }
         }
     }
-    
+
     function updateStatusUI(turn, _pieces) {
         // Rotate board for current turn
         rotateBoardForTurn(turn);

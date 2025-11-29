@@ -315,6 +315,94 @@
             border: 2px solid #fff; border-radius: 10px; cursor: pointer; transition: 0.2s;
         }
         .promo-btn:hover { background: #666; transform: scale(1.1); border-color: var(--text-gold); }
+        
+        /* --- SPECIAL TILE ACTIVATION MODAL --- */
+        #special-activation-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); z-index: 100;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .activation-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 3px solid #f1c40f;
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 10px 50px rgba(241, 196, 15, 0.5);
+            max-width: 500px;
+            animation: slideUp 0.4s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .activation-modal-content h2 {
+            color: #f1c40f;
+            font-size: 2rem;
+            margin: 0 0 20px 0;
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+        }
+        
+        .activation-modal-content .icon {
+            font-size: 4rem;
+            margin: 20px 0;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .activation-modal-content .description {
+            color: #fdf5e6;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        
+        .activation-modal-content .effect-detail {
+            color: #2ecc71;
+            font-size: 1rem;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(46, 204, 113, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .activation-modal-content button {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            background: #f1c40f;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4);
+        }
+        
+        .activation-modal-content button:hover {
+            background: #f39c12;
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(241, 196, 15, 0.6);
+        }
+        
+        .activation-modal-content button:active {
+            transform: scale(0.98);
+        }
 
         /* --- VISUALS --- */
         .square { 
@@ -327,6 +415,61 @@
             z-index: 2; /* Đảm bảo square ở trên các đường kẻ */
         }
         .square.dark { background: rgba(139, 69, 19, 0.2); }
+        
+        /* Special Tile Styling */
+        .square.special-tile {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.3)) !important;
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            position: relative;
+        }
+        
+        .square.special-tile::before {
+            content: '⚡';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 12px;
+            z-index: 5;
+        }
+        
+        .square.special-tile-activated {
+            animation: flashSpecial 0.5s ease-in-out;
+        }
+        
+        @keyframes flashSpecial {
+            0%, 100% { background: rgba(255, 215, 0, 0.3); }
+            50% { background: rgba(255, 215, 0, 0.8); box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+        }
+        
+        .square.special-tile-destroyed {
+            background: rgba(100, 100, 100, 0.4) !important;
+            border: 2px dashed rgba(150, 150, 150, 0.6);
+        }
+        
+        .square.special-tile-destroyed::before {
+            content: '💥';
+        }
+        
+        /* Unlocked General Overlay */
+        .piece.unlocked-general {
+            position: relative;
+        }
+        
+        .piece.unlocked-general::after {
+            content: '✨';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 16px;
+            animation: sparkle 1.5s ease-in-out infinite;
+            z-index: 10;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+        
         .river { 
             background: var(--river-color) !important; 
             position: relative; 
@@ -1109,6 +1252,17 @@
                     <button class="promo-btn" onclick="promotePawn('rook')" title="Xe">♜</button>
                     <button class="promo-btn" onclick="promotePawn('bishop')" title="Tượng">♝</button>
                     <button class="promo-btn" onclick="promotePawn('knight')" title="Mã">♞</button>
+                </div>
+            </div>
+            
+            <!-- Special Tile Activation Modal -->
+            <div id="special-activation-modal">
+                <div class="activation-modal-content">
+                    <h2 id="activation-title">Ô Chức Năng Đã Được Kích Hoạt!</h2>
+                    <div class="icon" id="activation-icon">⚡</div>
+                    <div class="description" id="activation-description"></div>
+                    <div class="effect-detail" id="activation-effect"></div>
+                    <button onclick="closeActivationModal()">Đã Hiểu</button>
                 </div>
             </div>
         </div>
@@ -2307,6 +2461,14 @@
         currentTurn = "chess";
         lastMove = null;
         enPassantTarget = null;
+        
+        // Reset special tile state
+        specialTileState = {
+            activatedBy: null,
+            pawnDestroyed: false,
+            xiangqiGeneralUnlocked: false
+        };
+        specialTilePawn = null;
         gameHistory = [];
         viewIndex = -1;
         isReviewing = false;
@@ -2394,6 +2556,18 @@
         enPassantTarget = null;
         selectedPiece = null;
         validMoves = [];
+        
+        // Reset special tile state
+        specialTileState = {
+            activatedBy: null,
+            pawnDestroyed: false,
+            xiangqiGeneralUnlocked: false
+        };
+        specialTilePawn = pieces.find(p => p.isSpecialPawn);
+        if (specialTilePawn) {
+            specialTilePawn.r = SPECIAL_TILE.r;
+            specialTilePawn.c = SPECIAL_TILE.c;
+        }
         
         // Hide start screen
         const startScreen = document.getElementById('start-screen');
@@ -2541,6 +2715,15 @@
     let isBotMode = false; // Chế độ chơi với BOT
     let botSide = null; // Bên mà BOT chơi (chess hoặc xiangqi)
     let enPassantTarget = null; // {r, c} - Vị trí tốt có thể bị ăn en passant
+    
+    // ========== SPECIAL TILE SYSTEM ==========
+    const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải (cạnh quân Xe)
+    let specialTileState = {
+        activatedBy: null, // null | 'chess' | 'xiangqi'
+        pawnDestroyed: false, // Tốt kích hoạt có bị ăn chưa
+        xiangqiGeneralUnlocked: false // Tướng cờ tướng đã được unlock chưa
+    };
+    let specialTilePawn = null; // Reference đến con tốt kích hoạt
 
     // Elements
     const boardEl = document.getElementById("board");
@@ -2552,6 +2735,7 @@
     const btnNext = document.getElementById("btn-next");
     const btnLive = document.getElementById("btn-live");
     const promoModal = document.getElementById("promotion-modal");
+    const activationModal = document.getElementById("special-activation-modal");
 
     const INITIAL_SETUP = [
         { type: "rook", side: "chess", r: 0, c: 0, hasMoved: false }, { type: "knight", side: "chess", r: 0, c: 1 },
@@ -2566,6 +2750,8 @@
         { type: "xe", side: "xiangqi", r: 9, c: 8 },
         { type: "pháo", side: "xiangqi", r: 7, c: 1 }, { type: "pháo", side: "xiangqi", r: 7, c: 7 },
         ...[0,2,4,6,8].map(c => ({ type: "tốt", side: "xiangqi", r: 6, c })),
+        // Con tốt kích hoạt trên ô đặc biệt
+        { type: "tốt", side: "xiangqi", r: SPECIAL_TILE.r, c: SPECIAL_TILE.c, isSpecialPawn: true },
     ];
 
     // --- START ---
@@ -2640,6 +2826,18 @@
                     enPassantTarget = null;
                     selectedPiece = null;
                     validMoves = [];
+                    
+                    // Reset special tile state
+                    specialTileState = {
+                        activatedBy: null,
+                        pawnDestroyed: false,
+                        xiangqiGeneralUnlocked: false
+                    };
+                    specialTilePawn = pieces.find(p => p.isSpecialPawn);
+                    if (specialTilePawn) {
+                        specialTilePawn.r = SPECIAL_TILE.r;
+                        specialTilePawn.c = SPECIAL_TILE.c;
+                    }
                     
                     // Ẩn các màn hình menu
                     document.getElementById("start-screen").style.display = "none";
@@ -2725,6 +2923,240 @@
             console.log('Calling botMakeMove from finishTurn...');
             setTimeout(() => botMakeMove(), 800);
         }
+    }
+    
+    // ========== SPECIAL TILE SYSTEM ==========
+    /**
+     * Xử lý khi quân cờ di chuyển vào ô đặc biệt
+     * @param {Object} piece - Quân cờ vừa di chuyển vào ô đặc biệt
+     */
+    function handleSpecialTileActivation(piece) {
+        // Kiểm tra nếu ô đã bị kích hoạt bởi bên này
+        if (specialTileState.activatedBy === piece.side) {
+            if (msgEl) {
+                msgEl.innerText = `⚠️ Ô đặc biệt đã được kích hoạt bởi ${piece.side === 'chess' ? 'Cờ Vua' : 'Cờ Tướng'}!`;
+                msgEl.style.color = '#ffaa00';
+                setTimeout(() => { if (msgEl) msgEl.innerText = ''; }, 3000);
+            }
+            return;
+        }
+        
+        // Kiểm tra nếu tốt kích hoạt đã bị ăn
+        if (specialTileState.pawnDestroyed) {
+            if (msgEl) {
+                msgEl.innerText = '⚠️ Ô đặc biệt đã bị phá hủy!';
+                msgEl.style.color = '#e74c3c';
+                setTimeout(() => { if (msgEl) msgEl.innerText = ''; }, 3000);
+            }
+            return;
+        }
+        
+        // Kiểm tra loại quân cờ
+        if (piece.side === 'xiangqi') {
+            // Quân cờ tướng chạm vào -> unlock Tướng
+            unlockXiangqiGeneral();
+        } else if (piece.side === 'chess' && piece.type === 'king') {
+            // Vua cờ vua chạm vào -> teleport
+            teleportKingToA9(piece);
+        } else {
+            // Quân khác không kích hoạt
+            return;
+        }
+        
+        // Đánh dấu đã kích hoạt
+        specialTileState.activatedBy = piece.side;
+        
+        // Hiệu ứng visual
+        flashSpecialTile();
+    }
+    
+    /**
+     * Mở khóa Tướng cờ tướng - cho phép đi dọc không giới hạn và ra khỏi cung thành
+     */
+    function unlockXiangqiGeneral() {
+        const general = pieces.find(p => p.side === 'xiangqi' && p.type === 'tướng');
+        if (!general) return;
+        
+        specialTileState.xiangqiGeneralUnlocked = true;
+        general.unlocked = true; // Đánh dấu Tướng đã được unlock
+        
+        // Hiển thị modal thông báo
+        showActivationModal(
+            '✨ TƯỚNG ĐÃ ĐƯỢC MỞ KHÓA!',
+            '⛩️',
+            'Quân cờ Tướng của bạn đã chạm vào ô chức năng đặc biệt!',
+            'Tướng giờ đây có thể:\n• Đi dọc (lên/xuống) không giới hạn số ô\n• Ra khỏi cung thành\n• Vẫn bị chặn bởi quân trên đường đi'
+        );
+        
+        // Hiệu ứng và thông báo trên message bar
+        if (msgEl) {
+            msgEl.innerText = '✨ TƯỚNG ĐÃ ĐƯỢC MỞ KHÓA! Có thể đi dọc không giới hạn!';
+            msgEl.style.color = '#2ecc71';
+            msgEl.style.fontWeight = 'bold';
+            setTimeout(() => { 
+                if (msgEl) {
+                    msgEl.style.fontWeight = 'normal';
+                    msgEl.style.color = '';
+                }
+            }, 5000);
+        }
+        
+        playSound('capture'); // Sound effect
+        drawBoard(); // Vẽ lại để hiển thị overlay
+    }
+    
+    /**
+     * Teleport Vua cờ vua đến ô A9 (r=0, c=0)
+     * @param {Object} kingPiece - Quân Vua cần teleport
+     */
+    function teleportKingToA9(kingPiece) {
+        const targetR = 0;
+        const targetC = 0; // A9 = cột 0, hàng 0
+        
+        // Kiểm tra ô đích có hợp lệ không
+        if (!inside(targetR, targetC)) {
+            console.error('Invalid teleport target: A9 is out of bounds');
+            if (msgEl) {
+                msgEl.innerText = '❌ Lỗi: Không thể teleport!';
+                msgEl.style.color = '#e74c3c';
+            }
+            return;
+        }
+        
+        // Kiểm tra ô đích có quân không
+        const targetPiece = pieces.find(p => p.r === targetR && p.c === targetC);
+        
+        if (targetPiece) {
+            if (targetPiece.side === kingPiece.side) {
+                // Đồng minh -> đổi chỗ
+                const tempR = kingPiece.r;
+                const tempC = kingPiece.c;
+                kingPiece.r = targetR;
+                kingPiece.c = targetC;
+                targetPiece.r = tempR;
+                targetPiece.c = tempC;
+                
+                // Hiển thị modal thông báo
+                showActivationModal(
+                    '✨ VUA ĐÃ TELEPORT!',
+                    '👑',
+                    'Vua của bạn đã chạm vào ô chức năng đặc biệt!',
+                    'Vua đã được dịch chuyển đến ô A9 và đổi chỗ với đồng minh!'
+                );
+                
+                if (msgEl) {
+                    msgEl.innerText = '✨ Vua đã teleport và đổi chỗ với đồng minh!';
+                    msgEl.style.color = '#3498db';
+                }
+            } else {
+                // Địch -> ăn quân địch
+                const capIdx = pieces.indexOf(targetPiece);
+                pieces.splice(capIdx, 1);
+                if (targetPiece.side === "chess") deadChess.push(targetPiece.type);
+                else deadXQ.push(targetPiece.type);
+                
+                kingPiece.r = targetR;
+                kingPiece.c = targetC;
+                
+                playSound('capture');
+                
+                // Hiển thị modal thông báo
+                showActivationModal(
+                    '✨ VUA ĐÃ TELEPORT!',
+                    '👑',
+                    'Vua của bạn đã chạm vào ô chức năng đặc biệt!',
+                    'Vua đã được dịch chuyển đến ô A9 và ăn quân địch!'
+                );
+                
+                if (msgEl) {
+                    msgEl.innerText = '✨ Vua đã teleport và ăn quân địch!';
+                    msgEl.style.color = '#e74c3c';
+                }
+            }
+        } else {
+            // Ô trống -> teleport bình thường
+            kingPiece.r = targetR;
+            kingPiece.c = targetC;
+            
+            // Hiển thị modal thông báo
+            showActivationModal(
+                '✨ VUA ĐÃ TELEPORT!',
+                '👑',
+                'Vua của bạn đã chạm vào ô chức năng đặc biệt!',
+                'Vua đã được dịch chuyển ngay lập tức đến ô A9!'
+            );
+            
+            if (msgEl) {
+                msgEl.innerText = '✨ Vua đã teleport đến A9!';
+                msgEl.style.color = '#9b59b6';
+            }
+        }
+        
+        // Hiệu ứng warp
+        playSound('move');
+        setTimeout(() => {
+            drawBoard();
+        }, 100);
+    }
+    
+    /**
+     * Hiển thị modal thông báo kích hoạt ô chức năng
+     * @param {string} title - Tiêu đề modal
+     * @param {string} icon - Icon hiển thị
+     * @param {string} description - Mô tả ngắn
+     * @param {string} effect - Chi tiết hiệu ứng
+     */
+    function showActivationModal(title, icon, description, effect) {
+        if (!activationModal) return;
+        
+        document.getElementById('activation-title').textContent = title;
+        document.getElementById('activation-icon').textContent = icon;
+        document.getElementById('activation-description').textContent = description;
+        document.getElementById('activation-effect').textContent = effect;
+        
+        activationModal.style.display = 'flex';
+    }
+    
+    /**
+     * Đóng modal thông báo kích hoạt
+     */
+    function closeActivationModal() {
+        if (activationModal) {
+            activationModal.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Kiểm tra xem quân cờ có thể kích hoạt ô đặc biệt không
+     * @param {Object} piece - Quân cờ cần kiểm tra
+     * @returns {boolean}
+     */
+    function canPieceActivate(piece) {
+        if (!piece) return false;
+        
+        // Cờ tướng: bất kỳ quân nào
+        if (piece.side === 'xiangqi') return true;
+        
+        // Cờ vua: chỉ Vua
+        if (piece.side === 'chess' && piece.type === 'king') return true;
+        
+        return false;
+    }
+    
+    /**
+     * Hiệu ứng flash cho ô đặc biệt khi được kích hoạt
+     */
+    function flashSpecialTile() {
+        setTimeout(() => {
+            const squareIdx = SPECIAL_TILE.r * COLS + SPECIAL_TILE.c;
+            if (boardEl && boardEl.children[squareIdx]) {
+                const square = boardEl.children[squareIdx];
+                square.classList.add('special-tile-activated');
+                setTimeout(() => {
+                    square.classList.remove('special-tile-activated');
+                }, 1000);
+            }
+        }, 100);
     }
     
     // ========== BOT AI ==========
@@ -2881,6 +3313,13 @@
         let captured = null;
         if (targetIdx !== -1) {
             captured = pieces[targetIdx];
+            
+            // Kiểm tra nếu tốt kích hoạt bị ăn (cho bot)
+            if (captured.isSpecialPawn) {
+                specialTileState.pawnDestroyed = true;
+                specialTilePawn = null;
+            }
+            
             pieces.splice(targetIdx, 1);
             if (captured.side === "chess") deadChess.push(captured.type);
             else deadXQ.push(captured.type);
@@ -3109,6 +3548,17 @@
                     square.classList.add("last-move");
                 }
                 
+                // Special Tile Marking
+                if (r === SPECIAL_TILE.r && c === SPECIAL_TILE.c) {
+                    square.classList.add("special-tile");
+                    if (specialTileState.pawnDestroyed) {
+                        square.classList.add("special-tile-destroyed");
+                    } else if (specialTileState.activatedBy) {
+                        const activatedText = specialTileState.activatedBy === 'chess' ? 'Cờ Vua' : 'Cờ Tướng';
+                        square.title = `Đã kích hoạt bởi ${activatedText}`;
+                    }
+                }
+                
                 if (!isReviewing) square.onclick = () => handleSquareClick(r, c);
                 boardEl.appendChild(square);
             }
@@ -3156,6 +3606,13 @@
             let square = boardEl.children[idx]; let el = createPieceEl(p);
             if (!isReviewing && selectedPiece && selectedPiece.r === p.r && selectedPiece.c === p.c) el.classList.add("selected");
             if (kingInCheck && (p.type === "king" || p.type === "tướng") && p.side === rTurn) el.classList.add("in-check");
+            
+            // Overlay cho Tướng đã unlock
+            if (p.type === "tướng" && p.side === "xiangqi" && p.unlocked) {
+                el.classList.add("unlocked-general");
+                el.title = "Tướng: Vertical Freedom - Có thể đi dọc không giới hạn!";
+            }
+            
             if (!isReviewing) el.onclick = (e) => { e.stopPropagation(); handlePieceClick(p); }; else el.style.cursor = "default";
             square.appendChild(el);
         });
@@ -3198,7 +3655,15 @@
                 el.appendChild(shieldEl);
             }
         }
-        else { el.classList.add("xq-side"); el.innerText = XQ_CHARS[p.type] || p.type; }
+        else { 
+            el.classList.add("xq-side"); 
+            el.innerText = XQ_CHARS[p.type] || p.type;
+            
+            // Thêm tooltip cho tốt kích hoạt
+            if (p.isSpecialPawn) {
+                el.title = "Tốt Kích Hoạt - Chạm vào để kích hoạt tính năng đặc biệt!";
+            }
+        }
         return el;
     }
 
@@ -3423,7 +3888,15 @@
                 }
             } else if (targetIdx !== -1) {
                 // Ăn quân bình thường
-                let captured = pieces[targetIdx]; pieces.splice(targetIdx, 1);
+                let captured = pieces[targetIdx];
+                
+                // Kiểm tra nếu tốt kích hoạt bị ăn
+                if (captured.isSpecialPawn) {
+                    specialTileState.pawnDestroyed = true;
+                    specialTilePawn = null;
+                }
+                
+                pieces.splice(targetIdx, 1);
                 if (captured.side === "chess") deadChess.push(captured.type); else deadXQ.push(captured.type);
                 playSound('capture');
             } else {
@@ -3460,6 +3933,12 @@
                 promoModal.style.display = 'flex';
                 drawBoard(); // Vẽ lại để thấy quân tốt đã đi xuống
                 return; // THOÁT HÀM, chờ người chơi chọn
+            }
+            
+            // ========== SPECIAL TILE ACTIVATION CHECK ==========
+            // Kiểm tra nếu di chuyển đến ô đặc biệt
+            if (r === SPECIAL_TILE.r && c === SPECIAL_TILE.c) {
+                handleSpecialTileActivation(selectedPiece);
             }
 
             finishTurn();
@@ -3687,10 +4166,30 @@
              if(p.r<5) { if(inside(p.r,p.c-1)&&!isAlly(p.r,p.c-1,p.side, _pieces)) moves.push({r:p.r,c:p.c-1}); if(inside(p.r,p.c+1)&&!isAlly(p.r,p.c+1,p.side, _pieces)) moves.push({r:p.r,c:p.c+1}); }
         }
         if (p.type==="tướng"||p.type==="sĩ") {
-            let dirs = p.type==="tướng" ? [[1,0],[-1,0],[0,1],[0,-1]] : [[1,1],[1,-1],[-1,1],[-1,-1]];
-            dirs.forEach(([dr,dc]) => {
-                let nr=p.r+dr, nc=p.c+dc; if(inside(nr,nc) && isInPalace(nr,nc) && !isAlly(nr,nc,p.side, _pieces)) moves.push({r:nr, c:nc});
-            });
+            if (p.type === "tướng" && p.unlocked) {
+                // Tướng đã được unlock - có thể đi dọc không giới hạn, ra khỏi cung thành
+                const verticalDirs = [[1,0],[-1,0]]; // Chỉ đi dọc (lên/xuống)
+                verticalDirs.forEach(([dr,dc]) => {
+                    let nr = p.r + dr, nc = p.c + dc;
+                    // Đi từng ô cho đến khi gặp chướng ngại vật
+                    while (inside(nr, nc)) {
+                        if (isAlly(nr, nc, p.side, _pieces)) break; // Gặp đồng minh -> dừng
+                        moves.push({r: nr, c: nc});
+                        if (isOccupied(nr, nc, _pieces)) break; // Gặp địch -> ăn và dừng
+                        nr += dr;
+                        nc += dc;
+                    }
+                });
+            } else {
+                // Logic bình thường: chỉ đi 1 ô trong cung thành
+                let dirs = p.type==="tướng" ? [[1,0],[-1,0],[0,1],[0,-1]] : [[1,1],[1,-1],[-1,1],[-1,-1]];
+                dirs.forEach(([dr,dc]) => {
+                    let nr=p.r+dr, nc=p.c+dc; 
+                    if(inside(nr,nc) && isInPalace(nr,nc) && !isAlly(nr,nc,p.side, _pieces)) {
+                        moves.push({r:nr, c:nc});
+                    }
+                });
+            }
         }
         if (p.type==="tượng") {
              [[2,2],[2,-2],[-2,2],[-2,-2]].forEach(([dr,dc]) => {

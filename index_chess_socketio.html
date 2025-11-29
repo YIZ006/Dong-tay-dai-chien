@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đông Tây Đại Chiến - Online Multiplayer (Socket.io)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Socket.io Client -->
@@ -467,24 +467,11 @@
             border-radius: 5px;
             background: #222;
             color: white;
-            font-size: 16px; /* Tối thiểu 16px để tránh zoom trên mobile */
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
+            font-size: 0.9rem;
         }
         #chat-input:focus {
             outline: none;
             border-color: #3498db;
-            /* Ngăn zoom trên iOS */
-            transform: scale(1);
-        }
-        /* Ngăn zoom khi focus vào input trên mobile */
-        @media screen and (max-width: 768px) {
-            #chat-input,
-            #room-code-input,
-            #server-url-input {
-                font-size: 16px !important;
-            }
         }
         #chat-emoji-btn {
             padding: 8px 10px;
@@ -1609,8 +1596,6 @@
             if (gameOverEl) {
                 gameOverEl.style.display = 'flex';
             }
-            // Xóa saved game state khi game kết thúc
-            clearSavedGameState();
         });
         
         socket.on('playerLeft', ({ playerId: pid }) => {
@@ -2247,9 +2232,6 @@
     
     // Reset game to menu
     function resetToMenu() {
-        // Clear saved game state
-        clearSavedGameState();
-        
         // Reset all game state
         isGameOver = false;
         isOnlineGame = false;
@@ -2589,8 +2571,35 @@
                         : `BOT đi trước (${botSideText})`;
                 }
                 setTimeout(() => {
+                    // Đảm bảo isBotMode được set
+                    isBotMode = true;
+                    isOnlineGame = false;
+                    
+                    // Khởi tạo trạng thái game
+                    pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
+                    deadChess = [];
+                    deadXQ = [];
+                    isGameOver = false;
+                    lastMove = null;
+                    enPassantTarget = null;
+                    selectedPiece = null;
+                    validMoves = [];
+                    
+                    // Ẩn các màn hình menu
                     document.getElementById("start-screen").style.display = "none";
                     document.getElementById("dice-section").style.display = "none";
+                    
+                    // Hiển thị bàn cờ và các phần tử game
+                    const boardContainer = document.getElementById('board-container');
+                    if (boardContainer) {
+                        boardContainer.style.display = 'block';
+                    }
+                    
+                    const graves = document.getElementById('graves');
+                    if (graves) {
+                        graves.style.display = 'flex';
+                    }
+                    
                     saveState();
                     drawBoard();
                     
@@ -2827,127 +2836,6 @@
         gameHistory.push(state);
         viewIndex = gameHistory.length - 1;
         updateControls();
-        
-        // Lưu game state vào localStorage để có thể tiếp tục khi reload
-        if (isOnlineGame || isBotMode) {
-            const gameStateToSave = {
-                pieces: JSON.parse(JSON.stringify(pieces)),
-                deadChess: [...deadChess],
-                deadXQ: [...deadXQ],
-                currentTurn: currentTurn,
-                lastMove: lastMove ? {...lastMove} : null,
-                isGameOver: isGameOver,
-                isOnlineGame: isOnlineGame,
-                isBotMode: isBotMode,
-                gameRoomId: gameRoomId,
-                playerSide: playerSide,
-                botSide: botSide,
-                timestamp: Date.now()
-            };
-            try {
-                localStorage.setItem('dongTayDaiChien_gameState', JSON.stringify(gameStateToSave));
-                console.log('Game state saved to localStorage');
-            } catch (e) {
-                console.error('Error saving game state:', e);
-            }
-        }
-    }
-    
-    // Khôi phục game state từ localStorage
-    function restoreGameState() {
-        try {
-            const savedState = localStorage.getItem('dongTayDaiChien_gameState');
-            if (!savedState) return false;
-            
-            const gameState = JSON.parse(savedState);
-            
-            // Kiểm tra xem game state có còn hợp lệ không (không quá 24 giờ)
-            const now = Date.now();
-            const savedTime = gameState.timestamp || 0;
-            const hoursPassed = (now - savedTime) / (1000 * 60 * 60);
-            
-            if (hoursPassed > 24) {
-                localStorage.removeItem('dongTayDaiChien_gameState');
-                return false;
-            }
-            
-            // Kiểm tra nếu game đã kết thúc thì không restore
-            if (gameState.isGameOver) {
-                localStorage.removeItem('dongTayDaiChien_gameState');
-                return false;
-            }
-            
-            // Khôi phục state
-            pieces = gameState.pieces || [];
-            deadChess = gameState.deadChess || [];
-            deadXQ = gameState.deadXQ || [];
-            currentTurn = gameState.currentTurn || 'chess';
-            lastMove = gameState.lastMove || null;
-            isGameOver = gameState.isGameOver || false;
-            isOnlineGame = gameState.isOnlineGame || false;
-            isBotMode = gameState.isBotMode || false;
-            gameRoomId = gameState.gameRoomId || null;
-            playerSide = gameState.playerSide || null;
-            botSide = gameState.botSide || null;
-            
-            console.log('Game state restored from localStorage:', { isOnlineGame, isBotMode, gameRoomId });
-            
-            // Nếu là online game, cần reconnect và join lại room
-            if (isOnlineGame && gameRoomId) {
-                // Ẩn start screen và hiển thị bàn cờ
-                const startScreen = document.getElementById('start-screen');
-                const boardContainer = document.getElementById('board-container');
-                const roomInfo = document.getElementById('room-info');
-                
-                if (startScreen) startScreen.style.display = 'none';
-                if (boardContainer) boardContainer.style.display = 'block';
-                if (roomInfo) roomInfo.style.display = 'block';
-                
-                // Kết nối lại server và join room
-                connectToServer();
-                
-                // Đợi kết nối rồi join room
-                setTimeout(() => {
-                    if (socket && socket.connected) {
-                        socket.emit('joinRoom', { roomCode: gameRoomId });
-                        console.log('Attempting to rejoin room:', gameRoomId);
-                    } else {
-                        // Nếu chưa kết nối được, thử lại sau 1 giây
-                        setTimeout(() => {
-                            if (socket && socket.connected) {
-                                socket.emit('joinRoom', { roomCode: gameRoomId });
-                            }
-                        }, 1000);
-                    }
-                }, 500);
-            } else if (isBotMode) {
-                // Bot mode - chỉ cần hiển thị bàn cờ
-                const startScreen = document.getElementById('start-screen');
-                const boardContainer = document.getElementById('board-container');
-                
-                if (startScreen) startScreen.style.display = 'none';
-                if (boardContainer) boardContainer.style.display = 'block';
-            }
-            
-            // Vẽ lại bàn cờ
-            drawBoard();
-            
-            return true;
-        } catch (e) {
-            console.error('Error restoring game state:', e);
-            localStorage.removeItem('dongTayDaiChien_gameState');
-            return false;
-        }
-    }
-    
-    // Xóa game state khi reset
-    function clearSavedGameState() {
-        try {
-            localStorage.removeItem('dongTayDaiChien_gameState');
-            console.log('Saved game state cleared');
-        } catch (e) {
-            console.error('Error clearing saved game state:', e);
-        }
     }
 
     function reviewMove(step) {

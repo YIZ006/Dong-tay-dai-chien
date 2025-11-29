@@ -10,7 +10,8 @@
     <style>
         :root {
             --cell: 60px;
-            --board-bg: #deb887;
+            --board-bg: #deb887; /* Màu nền dự phòng nếu không dùng ảnh */
+            --board-image: url('board-image.jpg'); /* Thay 'board-image.jpg' bằng tên file ảnh của bạn */
             --river-color: #87ceeb;
             --bg-color: #1a1a1a;
             --panel-bg: #222;
@@ -143,7 +144,13 @@
             display: grid;
             grid-template-columns: repeat(9, var(--cell));
             grid-template-rows: repeat(10, var(--cell));
-            background: var(--board-bg);
+            /* Sử dụng ảnh làm nền bàn cờ */
+            background-image: var(--board-image);
+            background-size: cover; /* Hoặc 'contain' tùy bạn muốn */
+            background-position: center;
+            background-repeat: no-repeat;
+            /* Màu nền dự phòng nếu ảnh không load được */
+            background-color: var(--board-bg);
             border: 2px solid #333;
             position: relative;
         }

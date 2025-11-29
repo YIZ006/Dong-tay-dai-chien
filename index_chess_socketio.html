@@ -1486,12 +1486,11 @@
                     <h3>⚔️ Quy Tắc Chung & Thắng Thua</h3>
                     <ul>
                         <li><strong>Mục tiêu:</strong> Chiếu bí Tướng (Cờ Tướng) hoặc Vua (Cờ Vua).</li>
-                        <li><strong>Khởi đầu:</strong> Tung đồng xu để chọn người được chọn bên, sau đó tung xúc xắc để chọn phe đi trước.</li>
-                        <li><strong>Ăn quân:</strong> Quân phe này đi vào ô quân phe kia đang đứng sẽ ăn quân đó.</li>
                         <li><strong>🛡️ Khiên của Tốt Cờ Vua:</strong> Tốt cờ vua khi chưa di chuyển có khiên (🛡️). Pháo cờ tướng không thể bắc cầu qua tốt có khiên. Khi tốt di chuyển, khiên sẽ mất và pháo có thể bắc cầu được.</li>
                         <li><strong>Mã Cờ Tướng:</strong> Mã cờ tướng không bị chặn bởi tốt cờ vua khi đi chữ L.</li>
                         <li><strong>En Passant:</strong> Tốt cờ vua có thể ăn tốt đối phương đi 2 ô ngang qua mặt mình.</li>
                         <li><strong>Lặp lại nước đi:</strong> Nếu cùng một trạng thái bàn cờ xuất hiện 4 lần, game sẽ tự động hòa cờ.</li>
+                        <li><strong>Ô đặc biệt:xuất hiện tại vị trí I10 ,chức năng ban khả năng không bị giới hạn khỏi thành khi 1 quân bất kì bên tướng chạm vào ,ban khả năng dịch chuyển của vua sang vị trí A10, chức năng chỉ kích hoạt 1 lần cho mỗi bên , khi hết tác dụng ô sẽ mất chức năng</strong></li>
                     </ul>
                 </div>
             </div>
@@ -2709,6 +2708,8 @@
         // Reset special tile state
         specialTileState = {
             activatedBy: null,
+            activatedByChess: false,
+            activatedByXiangqi: false,
             xiangqiGeneralUnlocked: false
         };
         gameHistory = [];
@@ -2803,8 +2804,10 @@
         // Reset special tile state
         specialTileState = {
             activatedBy: null,
+            activatedByChess: false,
+            activatedByXiangqi: false,
             xiangqiGeneralUnlocked: false
-        }; // Không còn tốt kích hoạt nữa
+        };
         
         // Reset position history
         positionHistory = [];
@@ -2960,7 +2963,9 @@
     // ========== SPECIAL TILE SYSTEM ==========
     const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải, bên cạnh Xe cờ Vua
     let specialTileState = {
-        activatedBy: null, // null | 'chess' | 'xiangqi'
+        activatedBy: null, // null | 'chess' | 'xiangqi' | 'both' (khi cả 2 bên đã dùng)
+        activatedByChess: false, // Cờ Vua đã kích hoạt chưa
+        activatedByXiangqi: false, // Cờ Tướng đã kích hoạt chưa
         xiangqiGeneralUnlocked: false // Tướng cờ tướng đã được unlock chưa
     };
 
@@ -3070,10 +3075,10 @@
                     // Reset special tile state
                     specialTileState = {
                         activatedBy: null,
-                        pawnDestroyed: false,
+                        activatedByChess: false,
+                        activatedByXiangqi: false,
                         xiangqiGeneralUnlocked: false
                     };
-                    specialTilePawn = null; // Không còn tốt kích hoạt nữa
                     
                     // Reset position history
                     positionHistory = [];
@@ -3191,8 +3196,19 @@
      * @param {Object} piece - Quân cờ vừa di chuyển vào ô đặc biệt
      */
     function handleSpecialTileActivation(piece) {
+        // Kiểm tra nếu cả 2 bên đã kích hoạt rồi
+        if (specialTileState.activatedByChess && specialTileState.activatedByXiangqi) {
+            if (msgEl) {
+                msgEl.innerText = `⚠️ Ô đặc biệt đã hết chức năng!`;
+                msgEl.style.color = '#888';
+                setTimeout(() => { if (msgEl) msgEl.innerText = ''; }, 3000);
+            }
+            return;
+        }
+        
         // Kiểm tra nếu ô đã bị kích hoạt bởi bên này
-        if (specialTileState.activatedBy === piece.side) {
+        if ((piece.side === 'chess' && specialTileState.activatedByChess) ||
+            (piece.side === 'xiangqi' && specialTileState.activatedByXiangqi)) {
             if (msgEl) {
                 msgEl.innerText = `⚠️ Ô đặc biệt đã được kích hoạt bởi ${piece.side === 'chess' ? 'Cờ Vua' : 'Cờ Tướng'}!`;
                 msgEl.style.color = '#ffaa00';
@@ -3201,25 +3217,32 @@
             return;
         }
         
-        // Không cần kiểm tra tốt kích hoạt nữa vì đã xóa
-        
         // Kiểm tra loại quân cờ
         if (piece.side === 'xiangqi') {
             // Quân cờ tướng chạm vào -> unlock Tướng
             unlockXiangqiGeneral();
+            specialTileState.activatedByXiangqi = true;
         } else if (piece.side === 'chess' && piece.type === 'king') {
             // Vua cờ vua chạm vào -> teleport
             teleportKingToA9(piece);
+            specialTileState.activatedByChess = true;
         } else {
             // Quân khác không kích hoạt
             return;
         }
         
         // Đánh dấu đã kích hoạt
-        specialTileState.activatedBy = piece.side;
+        if (specialTileState.activatedByChess && specialTileState.activatedByXiangqi) {
+            specialTileState.activatedBy = 'both';
+        } else {
+            specialTileState.activatedBy = piece.side;
+        }
         
         // Hiệu ứng visual
         flashSpecialTile();
+        
+        // Vẽ lại board để cập nhật trạng thái ô đặc biệt
+        drawBoard();
     }
     
     /**
@@ -4195,12 +4218,19 @@
                 
                 // Special Tile Marking - Ô i9 với màu xanh da trời phát sáng
                 if (r === SPECIAL_TILE.r && c === SPECIAL_TILE.c) {
-                    square.classList.add("special-tile");
-                    if (specialTileState.activatedBy) {
-                        const activatedText = specialTileState.activatedBy === 'chess' ? 'Cờ Vua' : 'Cờ Tướng';
-                        square.title = `Đã kích hoạt bởi ${activatedText}`;
+                    // Kiểm tra nếu cả 2 bên đã kích hoạt -> tắt glow
+                    if (specialTileState.activatedByChess && specialTileState.activatedByXiangqi) {
+                        square.classList.add("special-tile-destroyed");
+                        square.title = "Ô đặc biệt đã hết chức năng (cả 2 bên đã sử dụng)";
                     } else {
-                        square.title = "Ô Chức Năng Đặc Biệt - Chạm vào để kích hoạt!";
+                        square.classList.add("special-tile");
+                        if (specialTileState.activatedByChess) {
+                            square.title = "Đã kích hoạt bởi Cờ Vua - Cờ Tướng có thể kích hoạt";
+                        } else if (specialTileState.activatedByXiangqi) {
+                            square.title = "Đã kích hoạt bởi Cờ Tướng - Vua Cờ Vua có thể kích hoạt";
+                        } else {
+                            square.title = "Ô Chức Năng Đặc Biệt - Chạm vào để kích hoạt!";
+                        }
                     }
                 }
                 

@@ -1779,8 +1779,7 @@
     }
     
     // Coin flip function - only host can flip
-    let coinFlipped = false;
-    let coinResult = null; // Store coin result for Player 1 to choose side
+    // coinFlipped and coinResult are declared above in MULTIPLAYER STATE section
     
     function flipCoin() {
         console.log('flipCoin called', { coinFlipped, isOnlineGame, gameRoomId, isHost, playerId });
@@ -2214,16 +2213,6 @@
     let isBotMode = false; // Chế độ chơi với BOT
     let botSide = null; // Bên mà BOT chơi (chess hoặc xiangqi)
     let enPassantTarget = null; // {r, c} - Vị trí tốt có thể bị ăn en passant
-    
-    // Online game state
-    let isOnlineGame = false;
-    let gameRoomId = null;
-    let isHost = false;
-    let playerId = null;
-    let coinFlipped = false;
-    let coinResult = null;
-    let diceRolled = false;
-    let playerSide = null;
 
     // Elements
     const boardEl = document.getElementById("board");

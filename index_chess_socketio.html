@@ -1996,15 +1996,22 @@
         selectedPiece = null;
         validMoves = [];
         
-        // Hide start screen and show game board
+        // Hide start screen
         const startScreen = document.getElementById('start-screen');
         if (startScreen) {
             startScreen.style.display = 'none';
         }
         
-        const gameBoard = document.getElementById('game-board');
-        if (gameBoard) {
-            gameBoard.style.display = 'block';
+        // Show game board container
+        const boardContainer = document.getElementById('board-container');
+        if (boardContainer) {
+            boardContainer.style.display = 'block';
+        }
+        
+        // Also show graves and other game elements
+        const graves = document.getElementById('graves');
+        if (graves) {
+            graves.style.display = 'flex';
         }
         
         // Draw the board

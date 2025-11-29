@@ -1058,7 +1058,7 @@
             <button class="mode-btn" id="btn-online" onclick="selectGameMode('online')">
                 🌐 Chơi Online
             </button>
-            <button class="mode-btn active" id="btn-bot" onclick="selectGameMode('bot')">
+            <button class="mode-btn" id="btn-bot" onclick="selectGameMode('bot')">
                 🤖 Chơi với BOT
             </button>
         </div>
@@ -1110,7 +1110,7 @@
         </div>
         
         <!-- Bot Mode Menu -->
-        <div class="room-container" id="bot-menu">
+        <div class="room-container" id="bot-menu" style="display: none;">
             <div style="margin-bottom: 20px;">
                 <h3 style="color: #f1c40f; margin-bottom: 15px;">Chọn bên của bạn:</h3>
                 <div class="mode-selector">
@@ -1405,13 +1405,20 @@
     // ========== BOT DIFFICULTY SELECTION ==========
     function selectBotDifficulty(difficulty) {
         botDifficulty = difficulty;
-        document.getElementById('btn-difficulty-easy').classList.toggle('active', difficulty === 'easy');
-        document.getElementById('btn-difficulty-medium').classList.toggle('active', difficulty === 'medium');
-        document.getElementById('btn-difficulty-hard').classList.toggle('active', difficulty === 'hard');
+        const btnEasy = document.getElementById('btn-difficulty-easy');
+        const btnMedium = document.getElementById('btn-difficulty-medium');
+        const btnHard = document.getElementById('btn-difficulty-hard');
+        
+        if (btnEasy && btnMedium && btnHard) {
+            btnEasy.classList.remove('active');
+            btnMedium.classList.remove('active');
+            btnHard.classList.remove('active');
+            
+            if (difficulty === 'easy') btnEasy.classList.add('active');
+            else if (difficulty === 'medium') btnMedium.classList.add('active');
+            else if (difficulty === 'hard') btnHard.classList.add('active');
+        }
     }
-    
-    // Khởi tạo độ khó mặc định
-    selectBotDifficulty('medium');
     
     // ========== MODE SELECTION ==========
     function selectMode(mode) {
@@ -2526,6 +2533,7 @@
         gameHistory = [];
         viewIndex = -1;
         isReviewing = false;
+        positionHistory = []; // Reset lịch sử trạng thái
         pendingPromotion = null;
         botSide = null;
         
@@ -2616,6 +2624,9 @@
             activatedBy: null,
             xiangqiGeneralUnlocked: false
         }; // Không còn tốt kích hoạt nữa
+        
+        // Reset position history
+        positionHistory = [];
         
         // Hide start screen
         const startScreen = document.getElementById('start-screen');
@@ -2763,6 +2774,7 @@
     let isBotMode = false; // Chế độ chơi với BOT
     let botSide = null; // Bên mà BOT chơi (chess hoặc xiangqi)
     let enPassantTarget = null; // {r, c} - Vị trí tốt có thể bị ăn en passant
+    let positionHistory = []; // Lưu lịch sử các trạng thái bàn cờ để kiểm tra lặp lại
     
     // ========== SPECIAL TILE SYSTEM ==========
     const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải, bên cạnh Xe cờ Vua
@@ -2842,15 +2854,16 @@
         // Tung xúc xắc để quyết định ai đi trước
         let count = 0;
         const diceInterval = setInterval(() => {
-            const diceEl = document.getElementById("dice-result");
+            const diceEl = document.getElementById("dice-result-text");
             if (diceEl) {
+                diceEl.style.display = "block";
                 diceEl.innerText = count % 2 ? (playerSide === "chess" ? "♚" : "帥") : (playerSide === "chess" ? "帥" : "♚");
             }
             count++;
             if (count > 10) {
                 clearInterval(diceInterval);
                 currentTurn = Math.random() < 0.5 ? playerSide : botSide;
-                const resultEl = document.getElementById("dice-result");
+                const resultEl = document.getElementById("dice-result-text");
                 if (resultEl) {
                     const playerSideText = playerSide === "chess" ? "🏰 Cờ Vua" : "⛩️ Cờ Tướng";
                     const botSideText = botSide === "chess" ? "🏰 Cờ Vua" : "⛩️ Cờ Tướng";
@@ -2952,6 +2965,25 @@
         }
         
         saveState();
+        
+        // Kiểm tra lặp lại trạng thái (threefold repetition)
+        if (!isGameOver && checkThreefoldRepetition()) {
+            isGameOver = true;
+            const winnerText = document.getElementById('winner-text');
+            if (winnerText) {
+                winnerText.innerText = 'HÒA CỜ!\n(Lặp lại nước đi 4 lần)';
+            }
+            const gameOverEl = document.getElementById('game-over');
+            if (gameOverEl) {
+                gameOverEl.style.display = 'flex';
+            }
+            if (msgEl) {
+                msgEl.innerText = 'Hòa cờ do lặp lại nước đi!';
+                msgEl.style.color = '#f39c12';
+            }
+            drawBoard();
+            return; // Dừng lại, không tiếp tục
+        }
         
         // Sync với server nếu đang chơi online
         if (isOnlineGame) {
@@ -3703,6 +3735,41 @@
     
 
     // --- HISTORY ---
+    // Tạo hash từ trạng thái bàn cờ để kiểm tra lặp lại
+    function getBoardHash(_pieces = pieces, _currentTurn = currentTurn) {
+        // Sắp xếp các quân cờ theo thứ tự để đảm bảo hash nhất quán
+        const sortedPieces = JSON.parse(JSON.stringify(_pieces)).sort((a, b) => {
+            if (a.r !== b.r) return a.r - b.r;
+            if (a.c !== b.c) return a.c - b.c;
+            if (a.side !== b.side) return a.side.localeCompare(b.side);
+            return a.type.localeCompare(b.type);
+        });
+        
+        // Tạo hash từ vị trí và loại quân cờ
+        const hash = sortedPieces.map(p => `${p.side}-${p.type}-${p.r}-${p.c}`).join('|') + `|turn:${_currentTurn}`;
+        return hash;
+    }
+    
+    // Kiểm tra xem trạng thái hiện tại đã lặp lại bao nhiêu lần
+    function checkThreefoldRepetition() {
+        const currentHash = getBoardHash();
+        
+        // Đếm số lần trạng thái này xuất hiện trong lịch sử
+        let count = 0;
+        for (let i = 0; i < positionHistory.length; i++) {
+            if (positionHistory[i] === currentHash) {
+                count++;
+            }
+        }
+        
+        // Nếu trạng thái xuất hiện 4 lần (bao gồm lần hiện tại), hòa cờ
+        if (count >= 3) { // count >= 3 nghĩa là đã có 4 lần (3 lần trước + 1 lần hiện tại)
+            return true;
+        }
+        
+        return false;
+    }
+    
     function saveState() {
         const state = {
             pieces: JSON.parse(JSON.stringify(pieces)),
@@ -3711,6 +3778,11 @@
         };
         gameHistory.push(state);
         viewIndex = gameHistory.length - 1;
+        
+        // Lưu hash của trạng thái hiện tại vào lịch sử
+        const currentHash = getBoardHash();
+        positionHistory.push(currentHash);
+        
         updateControls();
     }
 
@@ -4596,6 +4668,28 @@
             case "king": return "♚"; case "queen": return "♛"; case "rook": return "♜";
             case "bishop": return "♝"; case "knight": return "♞"; case "pawn": return "♟"; default: return "?";
         }
+    }
+    
+    // Khởi tạo độ khó mặc định và chế độ bot khi DOM đã sẵn sàng
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            selectBotDifficulty('medium');
+            // Đảm bảo menu bot được hiển thị nếu nút bot đã active
+            const btnBot = document.getElementById('btn-bot');
+            if (btnBot && btnBot.classList.contains('active')) {
+                selectGameMode('bot');
+            }
+        });
+    } else {
+        // DOM đã sẵn sàng
+        setTimeout(function() {
+            selectBotDifficulty('medium');
+            // Đảm bảo menu bot được hiển thị nếu nút bot đã active
+            const btnBot = document.getElementById('btn-bot');
+            if (btnBot && btnBot.classList.contains('active')) {
+                selectGameMode('bot');
+            }
+        }, 100);
     }
 </script>
 </body>

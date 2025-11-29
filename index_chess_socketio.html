@@ -119,39 +119,32 @@
 
         /* --- BOARD --- */
         #board-container {
-            padding: 25px 30px; background: #5c4033; border-radius: 8px;
+            padding: 10px 35px 35px 10px; background: #5c4033; border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             position: relative;
             overflow: visible; /* Cho phép hiển thị góc bàn cờ */
             margin: 10px;
         }
         
-        /* Nhãn số và chữ cho bàn cờ */
+        /* Nhãn số và chữ cho bàn cờ - chỉ hiển thị hàng dưới và cột phải */
         .board-label {
             position: absolute;
-            color: #fdf5e6;
+            color: #ffd700; /* Màu vàng rõ ràng, không trùng với bàn cờ */
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
             z-index: 10;
             pointer-events: none;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 2px 2px 4px rgba(0,0,0,1);
             user-select: none;
+            background: rgba(0,0,0,0.3); /* Nền tối để dễ nhìn */
+            padding: 2px 4px;
+            border-radius: 3px;
         }
         
-        /* Nhãn số hàng (bên trái và phải) */
-        .board-label.row-label-left {
-            left: 5px;
-            top: 25px;
-            display: flex;
-            flex-direction: column;
-            height: calc(var(--cell) * 10);
-            justify-content: space-between;
-            align-items: center;
-        }
-        
+        /* Nhãn số hàng bên phải (ra ngoài rìa) */
         .board-label.row-label-right {
-            right: 5px;
-            top: 25px;
+            right: -25px;
+            top: 10px;
             display: flex;
             flex-direction: column;
             height: calc(var(--cell) * 10);
@@ -159,19 +152,10 @@
             align-items: center;
         }
         
-        /* Nhãn chữ cột (trên và dưới) */
-        .board-label.col-label-top {
-            top: 5px;
-            left: 30px;
-            display: flex;
-            width: calc(var(--cell) * 9);
-            justify-content: space-between;
-            align-items: center;
-        }
-        
+        /* Nhãn chữ cột phía dưới (ra ngoài rìa) */
         .board-label.col-label-bottom {
-            bottom: 5px;
-            left: 30px;
+            bottom: -30px;
+            left: 10px;
             display: flex;
             width: calc(var(--cell) * 9);
             justify-content: space-between;
@@ -188,16 +172,13 @@
         
         @media (max-width: 768px) {
             .board-label {
-                font-size: 12px;
+                font-size: 14px;
             }
-            .board-label.row-label-left,
             .board-label.row-label-right {
-                left: 3px;
-                right: 3px;
+                right: -20px;
             }
-            .board-label.col-label-top,
             .board-label.col-label-bottom {
-                left: 5px;
+                bottom: -25px;
             }
         }
         
@@ -3138,25 +3119,14 @@
         palaceBottom.className = "palace-bottom";
         boardEl.appendChild(palaceBottom);
         
-        // Thêm nhãn số và chữ cho bàn cờ
+        // Thêm nhãn số và chữ cho bàn cờ - chỉ hàng dưới và cột phải
         const boardContainer = document.getElementById('board-container');
         
         // Xóa các nhãn cũ nếu có
         const oldLabels = boardContainer.querySelectorAll('.board-label');
         oldLabels.forEach(label => label.remove());
         
-        // Tạo nhãn số hàng bên trái (1-10 từ trên xuống)
-        const rowLabelLeft = document.createElement("div");
-        rowLabelLeft.className = "board-label row-label-left";
-        for (let r = 0; r < ROWS; r++) {
-            const labelItem = document.createElement("div");
-            labelItem.className = "board-label-item";
-            labelItem.textContent = (ROWS - r).toString(); // 10, 9, 8, ..., 1
-            rowLabelLeft.appendChild(labelItem);
-        }
-        boardContainer.appendChild(rowLabelLeft);
-        
-        // Tạo nhãn số hàng bên phải (1-10 từ trên xuống)
+        // Tạo nhãn số hàng bên phải (1-10 từ trên xuống) - ra ngoài rìa
         const rowLabelRight = document.createElement("div");
         rowLabelRight.className = "board-label row-label-right";
         for (let r = 0; r < ROWS; r++) {
@@ -3167,21 +3137,10 @@
         }
         boardContainer.appendChild(rowLabelRight);
         
-        // Tạo nhãn chữ cột phía trên (a-i hoặc 1-9)
-        const colLabelTop = document.createElement("div");
-        colLabelTop.className = "board-label col-label-top";
-        const colLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
-        for (let c = 0; c < COLS; c++) {
-            const labelItem = document.createElement("div");
-            labelItem.className = "board-label-item";
-            labelItem.textContent = colLetters[c]; // a, b, c, ..., i
-            colLabelTop.appendChild(labelItem);
-        }
-        boardContainer.appendChild(colLabelTop);
-        
-        // Tạo nhãn chữ cột phía dưới (a-i hoặc 1-9)
+        // Tạo nhãn chữ cột phía dưới (a-i) - ra ngoài rìa
         const colLabelBottom = document.createElement("div");
         colLabelBottom.className = "board-label col-label-bottom";
+        const colLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
         for (let c = 0; c < COLS; c++) {
             const labelItem = document.createElement("div");
             labelItem.className = "board-label-item";
@@ -3304,7 +3263,30 @@
         turnBadge.innerText = turn === "chess" ? "Lượt: Cờ Vua" : "Lượt: Cờ Tướng";
         turnBadge.style.background = turn === "chess" ? "#fff" : "#cc0000";
         turnBadge.style.color = turn === "chess" ? "#000" : "#fff";
-        msgEl.innerText = isKingInCheck(turn, _pieces) ? "⚠️ CHIẾU TƯỚNG!" : "";
+        
+        // Luôn kiểm tra và hiển thị thông báo chiếu cho cả 2 bên
+        const chessInCheck = isKingInCheck("chess", _pieces);
+        const xiangqiInCheck = isKingInCheck("xiangqi", _pieces);
+        
+        if (chessInCheck && turn === "chess") {
+            msgEl.innerText = "⚠️ CHIẾU VUA!";
+            msgEl.style.color = "#ff0000";
+            msgEl.style.fontWeight = "bold";
+        } else if (xiangqiInCheck && turn === "xiangqi") {
+            msgEl.innerText = "⚠️ CHIẾU TƯỚNG!";
+            msgEl.style.color = "#ff0000";
+            msgEl.style.fontWeight = "bold";
+        } else if (chessInCheck) {
+            msgEl.innerText = "⚠️ Cờ Vua đang bị chiếu!";
+            msgEl.style.color = "#ffaa00";
+            msgEl.style.fontWeight = "normal";
+        } else if (xiangqiInCheck) {
+            msgEl.innerText = "⚠️ Cờ Tướng đang bị chiếu!";
+            msgEl.style.color = "#ffaa00";
+            msgEl.style.fontWeight = "normal";
+        } else {
+            msgEl.innerText = "";
+        }
         
         // Enable/disable action buttons based on game state
         const btnResign = document.getElementById('btn-resign');
@@ -3516,16 +3498,40 @@
     }
 
     function getSafeMoves(p) {
+        // Kiểm tra nếu vua đang bị chiếu - chỉ cho phép nước đi giải chiếu
+        const kingInCheck = isKingInCheck(p.side);
+        
         let moves = getPseudoMoves(p, pieces);
         return moves.filter(m => {
+            // Lưu trạng thái hiện tại
             let oldR = p.r, oldC = p.c;
             let capIdx = pieces.findIndex(t => t.r === m.r && t.c === m.c);
             let capPiece = null;
-            if (capIdx !== -1) { capPiece = pieces[capIdx]; pieces.splice(capIdx, 1); }
-            p.r = m.r; p.c = m.c;
+            
+            // Tạm thời di chuyển quân để kiểm tra
+            if (capIdx !== -1) { 
+                capPiece = pieces[capIdx]; 
+                pieces.splice(capIdx, 1); 
+            }
+            p.r = m.r; 
+            p.c = m.c;
+            
+            // Kiểm tra sau khi đi, vua có còn bị chiếu không
             let safe = !isKingInCheck(p.side, pieces);
-            p.r = oldR; p.c = oldC;
-            if (capPiece) pieces.splice(capIdx, 0, capPiece);
+            
+            // Nếu vua đang bị chiếu, chỉ cho phép nước đi giải chiếu
+            if (kingInCheck && !safe) {
+                // Nước đi này không giải chiếu - không hợp lệ
+                safe = false;
+            }
+            
+            // Restore trạng thái
+            p.r = oldR; 
+            p.c = oldC;
+            if (capPiece) {
+                pieces.splice(capIdx, 0, capPiece);
+            }
+            
             return safe;
         });
     }

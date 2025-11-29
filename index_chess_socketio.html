@@ -119,11 +119,86 @@
 
         /* --- BOARD --- */
         #board-container {
-            padding: 10px; background: #5c4033; border-radius: 8px;
+            padding: 25px 30px; background: #5c4033; border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             position: relative;
             overflow: visible; /* Cho phép hiển thị góc bàn cờ */
             margin: 10px;
+        }
+        
+        /* Nhãn số và chữ cho bàn cờ */
+        .board-label {
+            position: absolute;
+            color: #fdf5e6;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            user-select: none;
+        }
+        
+        /* Nhãn số hàng (bên trái và phải) */
+        .board-label.row-label-left {
+            left: 5px;
+            top: 25px;
+            display: flex;
+            flex-direction: column;
+            height: calc(var(--cell) * 10);
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .board-label.row-label-right {
+            right: 5px;
+            top: 25px;
+            display: flex;
+            flex-direction: column;
+            height: calc(var(--cell) * 10);
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Nhãn chữ cột (trên và dưới) */
+        .board-label.col-label-top {
+            top: 5px;
+            left: 30px;
+            display: flex;
+            width: calc(var(--cell) * 9);
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .board-label.col-label-bottom {
+            bottom: 5px;
+            left: 30px;
+            display: flex;
+            width: calc(var(--cell) * 9);
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .board-label-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--cell);
+            height: var(--cell);
+        }
+        
+        @media (max-width: 768px) {
+            .board-label {
+                font-size: 12px;
+            }
+            .board-label.row-label-left,
+            .board-label.row-label-right {
+                left: 3px;
+                right: 3px;
+            }
+            .board-label.col-label-top,
+            .board-label.col-label-bottom {
+                left: 5px;
+            }
         }
         
         /* Fix cho mobile - không bị khuất góc bàn cờ */
@@ -3062,6 +3137,58 @@
         let palaceBottom = document.createElement("div");
         palaceBottom.className = "palace-bottom";
         boardEl.appendChild(palaceBottom);
+        
+        // Thêm nhãn số và chữ cho bàn cờ
+        const boardContainer = document.getElementById('board-container');
+        
+        // Xóa các nhãn cũ nếu có
+        const oldLabels = boardContainer.querySelectorAll('.board-label');
+        oldLabels.forEach(label => label.remove());
+        
+        // Tạo nhãn số hàng bên trái (1-10 từ trên xuống)
+        const rowLabelLeft = document.createElement("div");
+        rowLabelLeft.className = "board-label row-label-left";
+        for (let r = 0; r < ROWS; r++) {
+            const labelItem = document.createElement("div");
+            labelItem.className = "board-label-item";
+            labelItem.textContent = (ROWS - r).toString(); // 10, 9, 8, ..., 1
+            rowLabelLeft.appendChild(labelItem);
+        }
+        boardContainer.appendChild(rowLabelLeft);
+        
+        // Tạo nhãn số hàng bên phải (1-10 từ trên xuống)
+        const rowLabelRight = document.createElement("div");
+        rowLabelRight.className = "board-label row-label-right";
+        for (let r = 0; r < ROWS; r++) {
+            const labelItem = document.createElement("div");
+            labelItem.className = "board-label-item";
+            labelItem.textContent = (ROWS - r).toString(); // 10, 9, 8, ..., 1
+            rowLabelRight.appendChild(labelItem);
+        }
+        boardContainer.appendChild(rowLabelRight);
+        
+        // Tạo nhãn chữ cột phía trên (a-i hoặc 1-9)
+        const colLabelTop = document.createElement("div");
+        colLabelTop.className = "board-label col-label-top";
+        const colLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+        for (let c = 0; c < COLS; c++) {
+            const labelItem = document.createElement("div");
+            labelItem.className = "board-label-item";
+            labelItem.textContent = colLetters[c]; // a, b, c, ..., i
+            colLabelTop.appendChild(labelItem);
+        }
+        boardContainer.appendChild(colLabelTop);
+        
+        // Tạo nhãn chữ cột phía dưới (a-i hoặc 1-9)
+        const colLabelBottom = document.createElement("div");
+        colLabelBottom.className = "board-label col-label-bottom";
+        for (let c = 0; c < COLS; c++) {
+            const labelItem = document.createElement("div");
+            labelItem.className = "board-label-item";
+            labelItem.textContent = colLetters[c]; // a, b, c, ..., i
+            colLabelBottom.appendChild(labelItem);
+        }
+        boardContainer.appendChild(colLabelBottom);
 
         // Draw Pieces
         let kingInCheck = isKingInCheck(rTurn, rPieces);

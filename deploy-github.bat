@@ -1,14 +1,9 @@
 @echo off
 chcp 65001 >nul
-setlocal enabledelayedexpansion
-
 echo ========================================
 echo   DEPLOY LÊN GITHUB - ĐÔNG TÂY ĐẠI CHIẾN
 echo ========================================
 echo.
-
-REM Chuyển đến thư mục chứa script
-cd /d "%~dp0"
 
 REM Kiểm tra git đã được cài đặt chưa
 git --version >nul 2>&1
@@ -26,11 +21,21 @@ if not exist ".git" (
     echo.
 )
 
-REM Set remote URL (đã có sẵn)
-echo [INFO] Đang cấu hình remote repository...
-git remote set-url origin https://github.com/YIZ006/Dong-tay-dai-chien.git
-echo [SUCCESS] Remote đã được cấu hình!
-echo.
+REM Kiểm tra remote đã được cấu hình chưa
+git remote get-url origin >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [SETUP] Chưa có remote repository!
+    echo.
+    set /p GITHUB_URL="Nhập URL GitHub repository (ví dụ: https://github.com/YIZ006/Dong-tay-dai-chien.git): "
+    if "!GITHUB_URL!"=="" (
+        echo [ERROR] URL không được để trống!
+        pause
+        exit /b 1
+    )
+    git remote add origin "!GITHUB_URL!"
+    echo [SUCCESS] Đã thêm remote: !GITHUB_URL!
+    echo.
+)
 
 REM Hiển thị trạng thái thay đổi
 echo [INFO] Kiểm tra thay đổi...
@@ -46,7 +51,7 @@ if "!COMMIT_MSG!"=="" (
 REM Add tất cả file
 echo.
 echo [INFO] Đang thêm file vào staging...
-git add -A
+git add .
 if %errorlevel% neq 0 (
     echo [ERROR] Không thể add file!
     pause
@@ -67,7 +72,7 @@ git branch -M main >nul 2>&1
 REM Push lên GitHub
 echo.
 echo [INFO] Đang push lên GitHub...
-git push -u origin main
+git push origin main
 
 if %errorlevel% equ 0 (
     echo.
@@ -75,7 +80,8 @@ if %errorlevel% equ 0 (
     echo   ✓ SUCCESS! Đã deploy lên GitHub thành công!
     echo ========================================
     echo.
-    echo Repository: https://github.com/YIZ006/Dong-tay-dai-chien
+    echo Repository: 
+    git remote get-url origin
     echo.
 ) else (
     echo.
@@ -84,20 +90,15 @@ if %errorlevel% equ 0 (
     echo ========================================
     echo.
     echo Có thể do:
-    echo 1. Chưa đăng nhập GitHub
+    echo 1. Chưa đăng nhập GitHub (dùng: git config --global user.name và user.email)
     echo 2. Chưa có quyền truy cập repository
     echo 3. Cần authentication token
     echo.
     echo Hướng dẫn:
-    echo - Cấu hình Git user:
-    echo   git config --global user.name "Your Name"
-    echo   git config --global user.email "your.email@example.com"
-    echo.
-    echo - Tạo Personal Access Token tại:
-    echo   https://github.com/settings/tokens
-    echo.
+    echo - Tạo Personal Access Token tại: https://github.com/settings/tokens
     echo - Dùng token thay cho password khi push
     echo.
 )
 
 pause
+

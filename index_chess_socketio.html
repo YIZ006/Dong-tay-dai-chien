@@ -2894,6 +2894,9 @@
                     };
                     specialTilePawn = null; // Không còn tốt kích hoạt nữa
                     
+                    // Reset position history
+                    positionHistory = [];
+                    
                     // Ẩn các màn hình menu
                     document.getElementById("start-screen").style.display = "none";
                     document.getElementById("dice-section").style.display = "none";
@@ -2947,6 +2950,9 @@
         // Nhưng giữ lại nếu tốt vừa đi 2 ô ở lượt này
         // (enPassantTarget sẽ được set trong tryMoveTo khi tốt đi 2 ô)
         
+        // Lưu state trước khi đổi lượt (để kiểm tra lặp lại với trạng thái đúng)
+        saveState();
+        
         currentTurn = currentTurn === "chess" ? "xiangqi" : "chess";
         
         // Xóa en passant target sau khi đổi lượt (nếu không được sử dụng)
@@ -2964,9 +2970,8 @@
             document.getElementById("game-over").style.display = "flex";
         }
         
-        saveState();
-        
         // Kiểm tra lặp lại trạng thái (threefold repetition)
+        // Kiểm tra với trạng thái sau khi đổi lượt (vì cùng một trạng thái bàn cờ có thể xuất hiện ở các lượt khác nhau)
         if (!isGameOver && checkThreefoldRepetition()) {
             isGameOver = true;
             const winnerText = document.getElementById('winner-text');
@@ -3837,6 +3842,20 @@
         gameHistory.pop(); // Xóa trạng thái hiện tại
         gameHistory.pop(); // Xóa trạng thái trước đó
         
+        // Rebuild positionHistory từ gameHistory để đảm bảo tính nhất quán
+        positionHistory = [];
+        for (let i = 0; i < gameHistory.length; i++) {
+            const state = gameHistory[i];
+            // Tạm thời set pieces và currentTurn để tính hash
+            const tempPieces = pieces;
+            const tempTurn = currentTurn;
+            pieces = state.pieces;
+            currentTurn = state.turn;
+            positionHistory.push(getBoardHash());
+            pieces = tempPieces;
+            currentTurn = tempTurn;
+        }
+        
         if (gameHistory.length > 0) {
             // Khôi phục về trạng thái trước đó
             const previousState = gameHistory[gameHistory.length - 1];
@@ -3876,6 +3895,7 @@
             selectedPiece = null;
             validMoves = [];
             gameHistory = [];
+            positionHistory = []; // Reset position history
             viewIndex = -1;
             isReviewing = false;
             

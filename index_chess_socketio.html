@@ -266,40 +266,143 @@
         .ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
         .ctrl-btn.active-live { background: #e74c3c; box-shadow: 0 0 10px red; width: auto; padding: 0 20px; border-radius: 20px; font-weight: bold;}
 
-        /* --- RULES SECTION (MỚI) --- */
-        #rules-container {
-            margin-top: 25px;
-            width: 100%;
-            max-width: 650px;
-            background: #232323;
-            border: 1px solid #444;
-            border-radius: 12px;
+        /* --- RULES MODAL --- */
+        #rules-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
+            overflow-y: auto;
+        }
+        #rules-modal.show {
+            display: flex;
+        }
+        #rules-container {
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            background: #232323;
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 25px;
             box-sizing: border-box;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            position: relative;
+        }
+        #rules-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #rules-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+        #rules-container::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        #rules-container::-webkit-scrollbar-thumb:hover {
+            background: #666;
         }
         .rules-title {
-            text-align: center; color: var(--text-gold); margin-top: 0;
-            border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.4rem;
+            text-align: center;
+            color: var(--text-gold);
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 15px;
+            font-size: 1.6rem;
         }
         .rules-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
         .rule-box h3 {
-            color: #e74c3c; font-size: 1.1rem; margin-bottom: 10px; margin-top: 0;
-            display: flex; align-items: center; gap: 8px;
+            color: #e74c3c;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .rule-box:first-child h3 { color: #dcdcdc; } /* Màu tiêu đề phe Cờ Vua */
+        .rule-box:first-child h3 { color: #dcdcdc; }
         .rule-box ul {
-            padding-left: 20px; margin: 0; font-size: 0.9rem; color: #ccc; line-height: 1.6;
+            padding-left: 20px;
+            margin: 0;
+            font-size: 0.95rem;
+            color: #ccc;
+            line-height: 1.7;
         }
-        .rule-box li { margin-bottom: 6px; }
+        .rule-box li {
+            margin-bottom: 8px;
+        }
         .full-width {
-            grid-column: span 2; border-top: 1px dashed #444; padding-top: 15px; margin-top: 5px;
+            grid-column: span 2;
+            border-top: 1px dashed #444;
+            padding-top: 20px;
+            margin-top: 10px;
+        }
+        .close-rules-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .close-rules-btn:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+        .rules-btn {
+            margin-top: 15px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rules-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
         }
         @media (max-width: 700px) {
-            .rules-grid { grid-template-columns: 1fr; }
-            .full-width { grid-column: span 1; }
+            #rules-container {
+                max-width: 95%;
+                padding: 20px;
+            }
+            .rules-grid {
+                grid-template-columns: 1fr;
+            }
+            .full-width {
+                grid-column: span 1;
+            }
         }
 
         /* --- PROMOTION MODAL --- */
@@ -828,7 +931,39 @@
             font-weight: bold;
         }
         
-        #start-screen, #game-over { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #start-screen, #game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        #start-screen::-webkit-scrollbar,
+        #game-over::-webkit-scrollbar {
+            width: 8px;
+        }
+        #start-screen::-webkit-scrollbar-track,
+        #game-over::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        #start-screen::-webkit-scrollbar-thumb,
+        #game-over::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        #start-screen::-webkit-scrollbar-thumb:hover,
+        #game-over::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
         button.main-btn { padding: 10px 30px; font-size: 1.2rem; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
         
         /* Online Multiplayer UI */
@@ -1047,11 +1182,16 @@
 <body>
 
     <div id="start-screen">
-        <button onclick="resetToMenu()" style="position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #555; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+        <button onclick="resetToMenu()" style="position: fixed; top: 20px; left: 20px; padding: 10px 20px; background: #555; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; z-index: 101;">
             🏠 Về Menu
         </button>
-        <h1 style="color: var(--text-gold);">ĐÔNG TÂY ĐẠI CHIẾN</h1>
-        <p style="color: #ccc;">Chọn chế độ chơi</p>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: var(--text-gold); margin-bottom: 10px; font-size: 2.5rem;">ĐÔNG TÂY ĐẠI CHIẾN</h1>
+            <p style="color: #ccc; font-size: 1.1rem; margin-bottom: 20px;">Chọn chế độ chơi</p>
+            <button class="rules-btn" onclick="showRules()">
+                📜 Xem Luật Chơi
+            </button>
+        </div>
         
         <!-- Game Mode Selection -->
         <div class="mode-selector" style="margin-bottom: 20px;">
@@ -1318,42 +1458,83 @@
         <button class="ctrl-btn active-live" id="btn-live" onclick="returnToLive()" title="Về trận đấu hiện tại">LIVE</button>
     </div>
 
-    <div id="rules-container">
-        <h2 class="rules-title">📜 LUẬT CHƠI CHI TIẾT</h2>
-        <div class="rules-grid">
-            <div class="rule-box">
-                <h3>🏰 Phe Cờ Vua (Trắng)</h3>
-                <ul>
-                    <li><strong>Luật di chuyển:</strong> Tuân theo luật Cờ Vua quốc tế.</li>
-                    <li><strong>Phong cấp Tốt:</strong> Tốt khi đi đến hàng cuối cùng (hàng đáy bên phe đỏ) được phép phong cấp thành: Hậu, Xe, Tượng hoặc Mã.</li>
-                    <li><strong>Đặc quyền:</strong> Quân Cờ Vua không bị giới hạn bởi Sông hay Cung Tướng.</li>
-                    <li><strong>Nhập thành:</strong> Được phép nếu Vua và Xe chưa di chuyển và đường đi thoáng.</li>
-                </ul>
-            </div>
-            <div class="rule-box">
-                <h3>⛩️ Phe Cờ Tướng (Đỏ)</h3>
-                <ul>
-                    <li><strong>Luật di chuyển:</strong> Tuân theo luật Cờ Tướng cơ bản.</li>
-                    <li><strong>Tốt:</strong> Qua sông được phép đi ngang và thẳng (mỗi lần 1 ô).</li>
-                    <li><strong>Hạn chế:</strong> Tướng và Sĩ không được ra khỏi Cung (ô vuông 3x3). Tượng không được đi qua sông.</li>
-                    <li><strong>Cản chân:</strong> Mã và Tượng tuân thủ luật cản chân như bình thường.</li>
-                </ul>
-            </div>
-            <div class="rule-box full-width">
-                <h3>⚔️ Quy Tắc Chung & Thắng Thua</h3>
-                <ul>
-                    <li><strong>Mục tiêu:</strong> Chiếu bí Tướng (Cờ Tướng) hoặc Vua (Cờ Vua).</li>
-                    <li><strong>Khởi đầu:</strong> Tung đồng xu để chọn người được chọn bên, sau đó tung xúc xắc để chọn phe đi trước.</li>
-                    <li><strong>Ăn quân:</strong> Quân phe này đi vào ô quân phe kia đang đứng sẽ ăn quân đó.</li>
-                    <li><strong>🛡️ Khiên của Tốt Cờ Vua:</strong> Tốt cờ vua khi chưa di chuyển có khiên (🛡️). Pháo cờ tướng không thể bắc cầu qua tốt có khiên. Khi tốt di chuyển, khiên sẽ mất và pháo có thể bắc cầu được.</li>
-                    <li><strong>Mã Cờ Tướng:</strong> Mã cờ tướng không bị chặn bởi tốt cờ vua khi đi chữ L.</li>
-                    <li><strong>En Passant:</strong> Tốt cờ vua có thể ăn tốt đối phương đi 2 ô ngang qua mặt mình.</li>
-                </ul>
+    <!-- Rules Modal -->
+    <div id="rules-modal">
+        <div id="rules-container">
+            <button class="close-rules-btn" onclick="closeRules()" title="Đóng">×</button>
+            <h2 class="rules-title">📜 LUẬT CHƠI CHI TIẾT</h2>
+            <div class="rules-grid">
+                <div class="rule-box">
+                    <h3>🏰 Phe Cờ Vua (Trắng)</h3>
+                    <ul>
+                        <li><strong>Luật di chuyển:</strong> Tuân theo luật Cờ Vua quốc tế.</li>
+                        <li><strong>Phong cấp Tốt:</strong> Tốt khi đi đến hàng cuối cùng (hàng đáy bên phe đỏ) được phép phong cấp thành: Hậu, Xe, Tượng hoặc Mã.</li>
+                        <li><strong>Đặc quyền:</strong> Quân Cờ Vua không bị giới hạn bởi Sông hay Cung Tướng.</li>
+                        <li><strong>Nhập thành:</strong> Được phép nếu Vua và Xe chưa di chuyển và đường đi thoáng.</li>
+                    </ul>
+                </div>
+                <div class="rule-box">
+                    <h3>⛩️ Phe Cờ Tướng (Đỏ)</h3>
+                    <ul>
+                        <li><strong>Luật di chuyển:</strong> Tuân theo luật Cờ Tướng cơ bản.</li>
+                        <li><strong>Tốt:</strong> Qua sông được phép đi ngang và thẳng (mỗi lần 1 ô).</li>
+                        <li><strong>Hạn chế:</strong> Tướng và Sĩ không được ra khỏi Cung (ô vuông 3x3). Tượng không được đi qua sông.</li>
+                        <li><strong>Cản chân:</strong> Mã và Tượng tuân thủ luật cản chân như bình thường.</li>
+                    </ul>
+                </div>
+                <div class="rule-box full-width">
+                    <h3>⚔️ Quy Tắc Chung & Thắng Thua</h3>
+                    <ul>
+                        <li><strong>Mục tiêu:</strong> Chiếu bí Tướng (Cờ Tướng) hoặc Vua (Cờ Vua).</li>
+                        <li><strong>Khởi đầu:</strong> Tung đồng xu để chọn người được chọn bên, sau đó tung xúc xắc để chọn phe đi trước.</li>
+                        <li><strong>Ăn quân:</strong> Quân phe này đi vào ô quân phe kia đang đứng sẽ ăn quân đó.</li>
+                        <li><strong>🛡️ Khiên của Tốt Cờ Vua:</strong> Tốt cờ vua khi chưa di chuyển có khiên (🛡️). Pháo cờ tướng không thể bắc cầu qua tốt có khiên. Khi tốt di chuyển, khiên sẽ mất và pháo có thể bắc cầu được.</li>
+                        <li><strong>Mã Cờ Tướng:</strong> Mã cờ tướng không bị chặn bởi tốt cờ vua khi đi chữ L.</li>
+                        <li><strong>En Passant:</strong> Tốt cờ vua có thể ăn tốt đối phương đi 2 ô ngang qua mặt mình.</li>
+                        <li><strong>Lặp lại nước đi:</strong> Nếu cùng một trạng thái bàn cờ xuất hiện 4 lần, game sẽ tự động hòa cờ.</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 
 <script>
+    // ========== RULES MODAL FUNCTIONS ==========
+    function showRules() {
+        const rulesModal = document.getElementById('rules-modal');
+        if (rulesModal) {
+            rulesModal.classList.add('show');
+            document.body.style.overflow = 'hidden'; // Ngăn scroll body khi modal mở
+        }
+    }
+    
+    function closeRules() {
+        const rulesModal = document.getElementById('rules-modal');
+        if (rulesModal) {
+            rulesModal.classList.remove('show');
+            document.body.style.overflow = ''; // Khôi phục scroll body
+        }
+    }
+    
+    // Đóng modal khi click bên ngoài
+    document.addEventListener('click', function(event) {
+        const rulesModal = document.getElementById('rules-modal');
+        const rulesContainer = document.getElementById('rules-container');
+        if (rulesModal && rulesContainer && event.target === rulesModal) {
+            closeRules();
+        }
+    });
+    
+    // Đóng modal bằng phím ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const rulesModal = document.getElementById('rules-modal');
+            if (rulesModal && rulesModal.classList.contains('show')) {
+                closeRules();
+            }
+        }
+    });
+    
     // ========== NETWORK MODE CONFIGURATION ==========
     let networkMode = 'local'; // 'local' or 'global'
     let socket = null;

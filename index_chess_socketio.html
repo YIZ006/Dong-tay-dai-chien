@@ -180,24 +180,7 @@
             border-bottom: 2px solid rgba(0,0,0,0.3);
         }
         
-        /* Vẽ Palace (Thành) cho bên trên (Cờ Tướng) */
-        #board::after {
-            content: '';
-            position: absolute;
-            top: calc(var(--cell) * 0);
-            left: calc(var(--cell) * 3);
-            width: calc(var(--cell) * 3);
-            height: calc(var(--cell) * 3);
-            border: 2px solid rgba(0,0,0,0.5);
-            z-index: 1;
-            pointer-events: none;
-            /* Vẽ đường chéo trong palace */
-            background-image: 
-                linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(0,0,0,0.3) 50%, transparent calc(50% + 1px)),
-                linear-gradient(to bottom left, transparent calc(50% - 1px), rgba(0,0,0,0.3) 50%, transparent calc(50% + 1px));
-        }
-        
-        /* Palace cho bên dưới (Cờ Tướng) */
+        /* Palace cho bên dưới (Cờ Tướng) - chỉ có palace ở phần cờ tướng */
         .palace-bottom {
             position: absolute;
             bottom: calc(var(--cell) * 0);

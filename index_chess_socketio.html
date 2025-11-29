@@ -144,15 +144,73 @@
             display: grid;
             grid-template-columns: repeat(9, var(--cell));
             grid-template-rows: repeat(10, var(--cell));
-            /* Sử dụng ảnh làm nền bàn cờ */
-            background-image: var(--board-image);
-            background-size: cover; /* Hoặc 'contain' tùy bạn muốn */
-            background-position: center;
-            background-repeat: no-repeat;
-            /* Màu nền dự phòng nếu ảnh không load được */
-            background-color: var(--board-bg);
-            border: 2px solid #333;
+            background-color: var(--board-bg); /* Màu nền bàn cờ cũ */
+            border: 3px solid #8b4513; /* Viền nâu đậm */
             position: relative;
+            /* Vẽ các đường kẻ ngang và dọc bằng CSS */
+            background-image: 
+                /* Đường kẻ dọc */
+                repeating-linear-gradient(to right, 
+                    transparent 0, 
+                    transparent calc(var(--cell) - 2px),
+                    rgba(0,0,0,0.4) calc(var(--cell) - 2px),
+                    rgba(0,0,0,0.4) var(--cell)
+                ),
+                /* Đường kẻ ngang */
+                repeating-linear-gradient(to bottom,
+                    transparent 0,
+                    transparent calc(var(--cell) - 2px),
+                    rgba(0,0,0,0.4) calc(var(--cell) - 2px),
+                    rgba(0,0,0,0.4) var(--cell)
+                );
+            background-size: 100% 100%;
+        }
+        
+        /* Vẽ River (Sông) ở giữa */
+        #board::before {
+            content: '';
+            position: absolute;
+            top: calc(var(--cell) * 4);
+            left: 0;
+            right: 0;
+            height: var(--cell);
+            background: var(--river-color);
+            z-index: 1;
+            border-top: 2px solid rgba(0,0,0,0.3);
+            border-bottom: 2px solid rgba(0,0,0,0.3);
+        }
+        
+        /* Vẽ Palace (Thành) cho bên trên (Cờ Tướng) */
+        #board::after {
+            content: '';
+            position: absolute;
+            top: calc(var(--cell) * 0);
+            left: calc(var(--cell) * 3);
+            width: calc(var(--cell) * 3);
+            height: calc(var(--cell) * 3);
+            border: 2px solid rgba(0,0,0,0.5);
+            z-index: 1;
+            pointer-events: none;
+            /* Vẽ đường chéo trong palace */
+            background-image: 
+                linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(0,0,0,0.3) 50%, transparent calc(50% + 1px)),
+                linear-gradient(to bottom left, transparent calc(50% - 1px), rgba(0,0,0,0.3) 50%, transparent calc(50% + 1px));
+        }
+        
+        /* Palace cho bên dưới (Cờ Tướng) */
+        .palace-bottom {
+            position: absolute;
+            bottom: calc(var(--cell) * 0);
+            left: calc(var(--cell) * 3);
+            width: calc(var(--cell) * 3);
+            height: calc(var(--cell) * 3);
+            border: 2px solid rgba(0,0,0,0.5);
+            z-index: 1;
+            pointer-events: none;
+            /* Vẽ đường chéo trong palace */
+            background-image: 
+                linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(0,0,0,0.3) 50%, transparent calc(50% + 1px)),
+                linear-gradient(to bottom left, transparent calc(50% - 1px), rgba(0,0,0,0.3) 50%, transparent calc(50% + 1px));
         }
 
         /* --- CONTROLS --- */
@@ -220,16 +278,69 @@
         .promo-btn:hover { background: #666; transform: scale(1.1); border-color: var(--text-gold); }
 
         /* --- VISUALS --- */
-        .square { width: var(--cell); height: var(--cell); display: flex; justify-content: center; align-items: center; position: relative; }
-        .square.dark { background: rgba(139, 69, 19, 0.3); }
-        .river { background: var(--river-color) !important; position: relative; }
-        .river span { position: absolute; width: 100%; text-align: center; font-size: 11px; color: #444; font-weight: bold; pointer-events: none; z-index: 0; }
-        .last-move { background-color: rgba(255, 255, 0, 0.4) !important; box-shadow: inset 0 0 10px orange; }
-
-        .xq-grid::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0,0,0,0.15); z-index: 0; }
-        .xq-grid::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: rgba(0,0,0,0.15); z-index: 0; }
-        .palace-slash { background: linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(0,0,0,0.2) 50%, transparent calc(50% + 1px)); }
-        .palace-backslash { background: linear-gradient(to bottom left, transparent calc(50% - 1px), rgba(0,0,0,0.2) 50%, transparent calc(50% + 1px)); }
+        .square { 
+            width: var(--cell); 
+            height: var(--cell); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            position: relative; 
+            z-index: 2; /* Đảm bảo square ở trên các đường kẻ */
+        }
+        .square.dark { background: rgba(139, 69, 19, 0.2); }
+        .river { 
+            background: var(--river-color) !important; 
+            position: relative; 
+            z-index: 2;
+        }
+        .river span { 
+            position: absolute; 
+            width: 100%; 
+            text-align: center; 
+            font-size: 11px; 
+            color: #444; 
+            font-weight: bold; 
+            pointer-events: none; 
+            z-index: 3;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .last-move { 
+            background-color: rgba(255, 255, 0, 0.4) !important; 
+            box-shadow: inset 0 0 10px orange; 
+            z-index: 2;
+        }
+        
+        /* Marker "L" cho các vị trí đặc biệt (Cannon và Pawn) */
+        .square.marker::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border: 2px solid rgba(0,0,0,0.4);
+            border-top: none;
+            border-right: none;
+            z-index: 1;
+        }
+        .square.marker-top-left::before {
+            top: 2px;
+            left: 2px;
+        }
+        .square.marker-top-right::before {
+            top: 2px;
+            right: 2px;
+            transform: rotate(90deg);
+        }
+        .square.marker-bottom-left::before {
+            bottom: 2px;
+            left: 2px;
+            transform: rotate(-90deg);
+        }
+        .square.marker-bottom-right::before {
+            bottom: 2px;
+            right: 2px;
+            transform: rotate(180deg);
+        }
 
         .piece { width: 85%; height: 85%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s; position: relative; z-index: 10; }
         .piece:hover { transform: scale(1.1); }
@@ -2753,23 +2864,56 @@
             updateStatusUI(rTurn, rPieces);
         }
 
-        // Draw Grid
+        // Draw Grid với các marker và styling mới
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
-                let square = document.createElement("div"); square.className = "square";
+                let square = document.createElement("div"); 
+                square.className = "square";
+                
+                // Dark squares cho phần trên (Cờ Vua)
                 if (r < 4 && (r + c) % 2 === 1) square.classList.add("dark");
-                if (r === 4) { square.classList.add("river"); square.innerHTML = "<span>SỞ HÀ - HÁN GIỚI</span>"; }
-                if (r > 4) {
-                    square.classList.add("xq-grid");
-                    if (r === 7 && c === 3) square.classList.add("palace-slash");
-                    if (r === 7 && c === 5) square.classList.add("palace-backslash");
-                    if (r === 8 && c === 4) square.innerHTML += `<div style="position:absolute;width:100%;height:1px;background:rgba(0,0,0,0.2);transform:rotate(45deg);"></div><div style="position:absolute;width:100%;height:1px;background:rgba(0,0,0,0.2);transform:rotate(-45deg);"></div>`;
+                
+                // River ở giữa (hàng 4)
+                if (r === 4) { 
+                    square.classList.add("river"); 
+                    square.innerHTML = "<span>SỞ HÀ - HÁN GIỚI</span>"; 
                 }
-                if (rLM && ((r===rLM.from.r && c===rLM.from.c) || (r===rLM.to.r && c===rLM.to.c))) square.classList.add("last-move");
+                
+                // Dark squares cho phần dưới (Cờ Tướng)
+                if (r > 4 && (r + c) % 2 === 1) square.classList.add("dark");
+                
+                // Marker "L" cho Cannon (hàng 1 và 8, cột 1 và 7)
+                if ((r === 1 || r === 8) && (c === 1 || c === 7)) {
+                    if (r === 1 && c === 1) square.classList.add("marker", "marker-top-left");
+                    else if (r === 1 && c === 7) square.classList.add("marker", "marker-top-right");
+                    else if (r === 8 && c === 1) square.classList.add("marker", "marker-bottom-left");
+                    else if (r === 8 && c === 7) square.classList.add("marker", "marker-bottom-right");
+                }
+                
+                // Marker "L" cho Pawn (hàng 3 và 6, các cột lẻ)
+                if ((r === 3 || r === 6) && [0, 2, 4, 6, 8].includes(c)) {
+                    if (r === 3 && c === 0) square.classList.add("marker", "marker-top-left");
+                    else if (r === 3 && c === 8) square.classList.add("marker", "marker-top-right");
+                    else if (r === 6 && c === 0) square.classList.add("marker", "marker-bottom-left");
+                    else if (r === 6 && c === 8) square.classList.add("marker", "marker-bottom-right");
+                    else if (r === 3) square.classList.add("marker", c < 4 ? "marker-top-left" : "marker-top-right");
+                    else if (r === 6) square.classList.add("marker", c < 4 ? "marker-bottom-left" : "marker-bottom-right");
+                }
+                
+                // Highlight last move
+                if (rLM && ((r===rLM.from.r && c===rLM.from.c) || (r===rLM.to.r && c===rLM.to.c))) {
+                    square.classList.add("last-move");
+                }
+                
                 if (!isReviewing) square.onclick = () => handleSquareClick(r, c);
                 boardEl.appendChild(square);
             }
         }
+        
+        // Thêm palace cho bên dưới (Cờ Tướng)
+        let palaceBottom = document.createElement("div");
+        palaceBottom.className = "palace-bottom";
+        boardEl.appendChild(palaceBottom);
 
         // Draw Pieces
         let kingInCheck = isKingInCheck(rTurn, rPieces);

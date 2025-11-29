@@ -164,40 +164,51 @@ io.on('connection', (socket) => {
         // Store coin result
         room.coinResult = result;
         
-        // Player 1 sees the result (heads = horse, tails = empty)
-        // Player 2 sees the opposite (if Player 1 sees heads, Player 2 sees tails)
+        // Random who gets to choose (50% chance for each player)
         const playerIds = Array.from(room.players.keys());
         const hostId = room.host;
         const guestId = playerIds.find(id => id !== hostId);
+        const whoChooses = Math.random() < 0.5 ? hostId : guestId;
+        room.whoChoosesSide = whoChooses;
         
+        // Player 1 sees the result (heads = horse, tails = empty)
+        // Player 2 sees the opposite (if Player 1 sees heads, Player 2 sees tails)
         // Send different views to each player
-        socket.emit('coinFlipCompleted', { result, playerView: result }); // Player 1 sees result
+        socket.emit('coinFlipCompleted', { 
+            result, 
+            playerView: result,
+            whoChooses: whoChooses === hostId ? 'player1' : 'player2',
+            canChoose: socket.id === whoChooses
+        }); // Player 1 sees result
+        
         socket.to(roomCode).emit('coinFlipCompleted', { 
             result, 
-            playerView: result === 'heads' ? 'tails' : 'heads' // Player 2 sees opposite
+            playerView: result === 'heads' ? 'tails' : 'heads', // Player 2 sees opposite
+            whoChooses: whoChooses === hostId ? 'player1' : 'player2',
+            canChoose: guestId === whoChooses
         });
         
-        console.log(`Coin flipped in room: ${roomCode}, Player 1 sees: ${result}, Player 2 sees: ${result === 'heads' ? 'tails' : 'heads'}`);
+        console.log(`Coin flipped in room: ${roomCode}, Player 1 sees: ${result}, Player 2 sees: ${result === 'heads' ? 'tails' : 'heads'}, Who chooses: ${whoChooses === hostId ? 'Player 1' : 'Player 2'}`);
     });
     
-    // Player 1 chooses side after seeing coin result
-    socket.on('player1ChooseSide', ({ roomCode, chosenSide, coinResult }) => {
+    // Player chooses side after seeing coin result (can be Player 1 or Player 2)
+    socket.on('playerChooseSide', ({ roomCode, chosenSide, coinResult }) => {
         const room = rooms.get(roomCode);
         if (!room || room.status !== 'choosingSides') return;
         
-        // Only host can choose side
-        if (socket.id !== room.host) {
-            socket.emit('error', { message: 'Chỉ Player 1 mới được chọn bên!' });
+        // Check if this player is allowed to choose
+        if (socket.id !== room.whoChoosesSide) {
+            socket.emit('error', { message: 'Bạn không được chọn bên!' });
             return;
         }
         
         const playerIds = Array.from(room.players.keys());
-        const hostId = room.host;
-        const guestId = playerIds.find(id => id !== hostId);
+        const chooserId = socket.id;
+        const otherId = playerIds.find(id => id !== chooserId);
         
-        // Assign sides based on Player 1's choice
-        room.players.get(hostId).side = chosenSide;
-        room.players.get(guestId).side = chosenSide === 'chess' ? 'xiangqi' : 'chess';
+        // Assign sides based on chooser's choice
+        room.players.get(chooserId).side = chosenSide;
+        room.players.get(otherId).side = chosenSide === 'chess' ? 'xiangqi' : 'chess';
         
         // Broadcast side assignment
         io.to(roomCode).emit('sidesAssigned', {
@@ -210,7 +221,7 @@ io.on('connection', (socket) => {
         
         // Move to dice roll phase
         room.status = 'choosingFirstTurn';
-        console.log(`Sides assigned in room: ${roomCode}, Player 1 chose: ${chosenSide}`);
+        console.log(`Sides assigned in room: ${roomCode}, ${chooserId === room.host ? 'Player 1' : 'Player 2'} chose: ${chosenSide}`);
     });
     
     // Dice roll result (choose first turn) - both players roll 1 dice each (1-6)

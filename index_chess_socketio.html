@@ -121,6 +121,23 @@
             padding: 10px; background: #5c4033; border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             position: relative;
+            overflow: visible; /* Cho phép hiển thị góc bàn cờ */
+            margin: 10px;
+        }
+        
+        /* Fix cho mobile - không bị khuất góc bàn cờ */
+        @media (max-width: 768px) {
+            #board-container {
+                padding: 5px;
+                margin: 5px;
+                overflow: visible;
+            }
+            #board {
+                overflow: visible;
+            }
+            body {
+                overflow-x: auto; /* Cho phép scroll ngang nếu cần */
+            }
         }
         #board {
             display: grid;
@@ -918,8 +935,11 @@
                 <h3>⚔️ Quy Tắc Chung & Thắng Thua</h3>
                 <ul>
                     <li><strong>Mục tiêu:</strong> Chiếu bí Tướng (Cờ Tướng) hoặc Vua (Cờ Vua).</li>
-                    <li><strong>Khởi đầu:</strong> Hệ thống tung xúc xắc ngẫu nhiên để chọn phe đi trước.</li>
+                    <li><strong>Khởi đầu:</strong> Tung đồng xu để chọn người được chọn bên, sau đó tung xúc xắc để chọn phe đi trước.</li>
                     <li><strong>Ăn quân:</strong> Quân phe này đi vào ô quân phe kia đang đứng sẽ ăn quân đó.</li>
+                    <li><strong>🛡️ Khiên của Tốt Cờ Vua:</strong> Tốt cờ vua khi chưa di chuyển có khiên (🛡️). Pháo cờ tướng không thể bắc cầu qua tốt có khiên. Khi tốt di chuyển, khiên sẽ mất và pháo có thể bắc cầu được.</li>
+                    <li><strong>Mã Cờ Tướng:</strong> Mã cờ tướng không bị chặn bởi tốt cờ vua khi đi chữ L.</li>
+                    <li><strong>En Passant:</strong> Tốt cờ vua có thể ăn tốt đối phương đi 2 ô ngang qua mặt mình.</li>
                 </ul>
             </div>
         </div>
@@ -1795,7 +1815,7 @@
             // Player 1 sees heads (horse) or tails (empty)
             // Player 2 will see the opposite
             if (result === 'heads') {
-                resultEl.textContent = '🪙 Bạn thấy MẶT NGỰA! Chọn bên bạn muốn chơi:';
+                resultEl.textContent = '🪙 Bạn thấy MẶT NGỬA! Chọn bên bạn muốn chơi:';
                 // Show choice buttons for Player 1
                 document.getElementById('player1-choice').style.display = 'block';
             } else {
@@ -1811,14 +1831,12 @@
         }, 2000);
     }
     
-    // Function for Player 1 to choose side
+    // Function for player to choose side (can be Player 1 or Player 2)
     function chooseSide(chosenSide) {
-        if (!isHost || !coinResult) return;
+        if (!coinResult || !isOnlineGame || !gameRoomId) return;
         
-        // Determine sides based on Player 1's choice
-        // If Player 1 chose chess, they play chess, Player 2 plays xiangqi
-        // If Player 1 chose xiangqi, they play xiangqi, Player 2 plays chess
-        socket.emit('player1ChooseSide', { 
+        // Send choice to server (server will check if this player can choose)
+        socket.emit('playerChooseSide', { 
             roomCode: gameRoomId, 
             chosenSide: chosenSide,
             coinResult: coinResult 
@@ -1829,30 +1847,46 @@
     }
     
     // Listen for coin flip result from server
-    socket.on('coinFlipCompleted', ({ result, playerView }) => {
+    socket.on('coinFlipCompleted', ({ result, playerView, whoChooses, canChoose }) => {
         const resultEl = document.getElementById('coin-result');
         const coin = document.getElementById('coin');
+        const coinInstruction = document.getElementById('coin-flip-instruction');
         
         // Update coin display based on what player sees
         coin.classList.remove('flipping');
         coin.style.pointerEvents = 'none';
         
-        // playerView: 'heads' for Player 1, 'tails' for Player 2 (opposite)
-        if (playerView === 'heads') {
-            // Player 1 sees heads (horse) - show horse side facing up
-            coin.style.transform = 'rotateY(0deg)';
-            if (isHost) {
-                resultEl.textContent = '🪙 Bạn thấy MẶT NGỰA! Chọn bên bạn muốn chơi:';
-                coinResult = 'heads';
-                document.getElementById('player1-choice').style.display = 'block';
+        // Store coin result
+        coinResult = result;
+        
+        // Check if this player can choose
+        if (canChoose) {
+            // This player can choose side
+            if (playerView === 'heads') {
+                coin.style.transform = 'rotateY(0deg)';
+                resultEl.textContent = '🪙 Bạn thấy MẶT NGỬA! Chọn bên bạn muốn chơi:';
             } else {
-                resultEl.textContent = '🪙 Player 1 đang chọn bên...';
+                coin.style.transform = 'rotateY(180deg)';
+                resultEl.textContent = '🪙 Bạn thấy MẶT ÚP (mặt sau)! Chọn bên bạn muốn chơi:';
+            }
+            // Show choice buttons
+            document.getElementById('player1-choice').style.display = 'block';
+            if (coinInstruction) {
+                coinInstruction.textContent = 'Bạn được quyền chọn bên!';
             }
         } else {
-            // Player 2 sees tails (empty/upside down) - show empty side facing up
-            coin.style.transform = 'rotateY(180deg)';
-            if (!isHost) {
-                resultEl.textContent = '🪙 Bạn thấy MẶT ÚP (mặt sau trống) - Đang chờ Player 1 chọn bên...';
+            // Other player chooses
+            const chooserName = whoChooses === 'player1' ? 'Player 1' : 'Player 2';
+            if (playerView === 'heads') {
+                coin.style.transform = 'rotateY(0deg)';
+                resultEl.textContent = `🪙 Bạn thấy MẶT NGỬA! Đang chờ ${chooserName} chọn bên...`;
+            } else {
+                coin.style.transform = 'rotateY(180deg)';
+                resultEl.textContent = `🪙 Bạn thấy MẶT ÚP (mặt sau)! Đang chờ ${chooserName} chọn bên...`;
+            }
+            document.getElementById('player1-choice').style.display = 'none';
+            if (coinInstruction) {
+                coinInstruction.textContent = `Đang chờ ${chooserName} chọn bên...`;
             }
         }
         resultEl.style.display = 'block';
@@ -2091,7 +2125,7 @@
         { type: "bishop", side: "chess", r: 0, c: 2 }, { type: "queen", side: "chess", r: 0, c: 3 },
         { type: "king", side: "chess", r: 0, c: 4, hasMoved: false }, { type: "bishop", side: "chess", r: 0, c: 5 },
         { type: "knight", side: "chess", r: 0, c: 6 }, { type: "rook", side: "chess", r: 0, c: 7, hasMoved: false },
-        ...Array.from({ length: 8 }, (_, i) => ({ type: "pawn", side: "chess", r: 1, c: i })),
+        ...Array.from({ length: 8 }, (_, i) => ({ type: "pawn", side: "chess", r: 1, c: i, hasMoved: false, hasShield: true })),
         { type: "xe", side: "xiangqi", r: 9, c: 0 }, { type: "mã", side: "xiangqi", r: 9, c: 1 },
         { type: "tượng", side: "xiangqi", r: 9, c: 2 }, { type: "sĩ", side: "xiangqi", r: 9, c: 3 },
         { type: "tướng", side: "xiangqi", r: 9, c: 4 }, { type: "sĩ", side: "xiangqi", r: 9, c: 5 },
@@ -2348,6 +2382,12 @@
         piece.c = move.c;
         if (piece.type === "king" || piece.type === "rook") piece.hasMoved = true;
         
+        // Xóa khiên của tốt cờ vua khi di chuyển
+        if (piece.type === "pawn" && piece.side === "chess") {
+            piece.hasMoved = true;
+            piece.hasShield = false; // Mất khiên khi di chuyển
+        }
+        
         // Lưu thông tin en passant target nếu tốt đi 2 ô
         if (piece.side === "chess" && piece.type === "pawn" && move.isEnPassantMove) {
             enPassantTarget = {r: 3, c: move.c};
@@ -2480,7 +2520,23 @@
 
     function createPieceEl(p) {
         let el = document.createElement("div"); el.className = "piece";
-        if (p.side === "chess") { el.classList.add("chess-side"); el.innerHTML = getChessIcon(p.type); }
+        if (p.side === "chess") { 
+            el.classList.add("chess-side"); 
+            el.innerHTML = getChessIcon(p.type);
+            // Thêm icon khiên cho tốt cờ vua chưa đi
+            if (p.type === "pawn" && p.hasShield !== false) {
+                let shieldEl = document.createElement("span");
+                shieldEl.className = "pawn-shield";
+                shieldEl.innerHTML = "🛡️";
+                shieldEl.style.position = "absolute";
+                shieldEl.style.top = "-5px";
+                shieldEl.style.right = "-5px";
+                shieldEl.style.fontSize = "12px";
+                shieldEl.title = "Tốt có khiên - Pháo không thể bắc cầu";
+                el.style.position = "relative";
+                el.appendChild(shieldEl);
+            }
+        }
         else { el.classList.add("xq-side"); el.innerText = XQ_CHARS[p.type] || p.type; }
         return el;
     }
@@ -2687,6 +2743,12 @@
 
             selectedPiece.r = r; selectedPiece.c = c;
             if (selectedPiece.type === "king" || selectedPiece.type === "rook") selectedPiece.hasMoved = true;
+            
+            // Xóa khiên của tốt cờ vua khi di chuyển
+            if (selectedPiece.type === "pawn" && selectedPiece.side === "chess") {
+                selectedPiece.hasMoved = true;
+                selectedPiece.hasShield = false; // Mất khiên khi di chuyển
+            }
 
             // Lưu thông tin en passant target nếu tốt đi 2 ô
             if (selectedPiece.side === "chess" && selectedPiece.type === "pawn" && move.isEnPassantMove) {
@@ -2834,8 +2896,18 @@
                                 if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
                                 break;
                             } else {
-                                if (targetPiece.side === "chess" && targetPiece.type === "pawn") break;
-                                else hurdle = true;
+                                // Pháo bắc cầu: cần có 1 quân làm cầu
+                                // Nếu gặp tốt cờ vua chưa đi (có khiên) → không thể bắc cầu
+                                if (targetPiece.side === "chess" && targetPiece.type === "pawn") {
+                                    // Kiểm tra nếu tốt có khiên (chưa đi) → không thể bắc cầu
+                                    if (targetPiece.hasShield !== false) {
+                                        break; // Không thể bắc cầu qua tốt có khiên
+                                    } else {
+                                        hurdle = true; // Tốt đã đi → có thể bắc cầu
+                                    }
+                                } else {
+                                    hurdle = true; // Quân khác → có thể bắc cầu
+                                }
                             }
                         }
                     } else {
@@ -2872,8 +2944,15 @@
                 let blockCPos = p.c + blockC;
                 
                 // Nếu điểm chặn có quân → không thể đi hướng này (bị cản mã)
+                // NHƯNG: Nếu quân chặn là tốt cờ vua (pawn) thì KHÔNG chặn mã cờ tướng
                 if (isOccupied(blockRPos, blockCPos, _pieces)) {
-                    return; // Bỏ qua hướng này
+                    const blockingPiece = _pieces.find(piece => piece.r === blockRPos && piece.c === blockCPos);
+                    // Nếu quân chặn là tốt cờ vua và mã là cờ tướng → không bị chặn
+                    if (blockingPiece && blockingPiece.type === 'pawn' && blockingPiece.side === 'chess' && p.side === 'xiangqi') {
+                        // Không bị chặn, tiếp tục đi
+                    } else {
+                        return; // Bỏ qua hướng này (bị chặn)
+                    }
                 }
                 
                 // Nếu điểm chặn không có quân → có thể đi

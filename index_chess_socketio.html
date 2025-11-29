@@ -143,23 +143,29 @@
         
         /* Nhãn số hàng bên phải (ra ngoài rìa) */
         .board-label.row-label-right {
-            right: -25px;
-            top: 10px;
+            right: -30px;
+            top: 10px; /* Căn với padding top của board-container */
             display: flex;
             flex-direction: column;
             height: calc(var(--cell) * 10);
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            gap: 0;
+            margin: 0;
+            padding: 0;
         }
         
         /* Nhãn chữ cột phía dưới (ra ngoài rìa) */
         .board-label.col-label-bottom {
             bottom: -30px;
-            left: 10px;
+            left: 10px; /* Căn với padding left của board-container */
             display: flex;
             width: calc(var(--cell) * 9);
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            gap: 0;
+            margin: 0;
+            padding: 0;
         }
         
         .board-label-item {
@@ -168,6 +174,10 @@
             justify-content: center;
             width: var(--cell);
             height: var(--cell);
+            flex-shrink: 0;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         @media (max-width: 768px) {
@@ -175,10 +185,12 @@
                 font-size: 14px;
             }
             .board-label.row-label-right {
-                right: -20px;
+                right: -25px;
+                top: 10px;
             }
             .board-label.col-label-bottom {
                 bottom: -25px;
+                left: 10px;
             }
         }
         
@@ -2959,6 +2971,13 @@
     let botSide = null; // Bên mà BOT chơi (chess hoặc xiangqi)
     let enPassantTarget = null; // {r, c} - Vị trí tốt có thể bị ăn en passant
     let positionHistory = []; // Lưu lịch sử các trạng thái bàn cờ để kiểm tra lặp lại
+    
+    // ========== TIMER SYSTEM ==========
+    const TIMER_DURATION = 10 * 60; // 10 phút = 600 giây
+    let chessTimer = TIMER_DURATION; // Thời gian còn lại của Cờ Vua (giây)
+    let xiangqiTimer = TIMER_DURATION; // Thời gian còn lại của Cờ Tướng (giây)
+    let timerInterval = null; // Interval cho timer
+    let timerPaused = false; // Timer có đang tạm dừng không
     
     // ========== SPECIAL TILE SYSTEM ==========
     const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải, bên cạnh Xe cờ Vua

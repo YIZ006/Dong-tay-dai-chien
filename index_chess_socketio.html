@@ -690,6 +690,9 @@
 <body>
 
     <div id="start-screen">
+        <button onclick="resetToMenu()" style="position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #555; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+            🏠 Về Menu
+        </button>
         <h1 style="color: var(--text-gold);">ĐÔNG TÂY ĐẠI CHIẾN</h1>
         <p style="color: #ccc;">Chọn chế độ chơi</p>
         
@@ -844,7 +847,14 @@
 
     <div id="game-over" style="display: none;">
         <h1 id="winner-text" style="color: var(--text-gold);">WINNER</h1>
-        <button class="main-btn" onclick="location.reload()">Chơi Lại</button>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+            <button class="main-btn" onclick="resetToMenu()" style="background: #3498db;">
+                🏠 Về Menu Chính
+            </button>
+            <button class="main-btn" onclick="playAgain()">
+                🔄 Chơi Lại
+            </button>
+        </div>
     </div>
 
     <div id="status-bar">
@@ -1434,9 +1444,14 @@
         
         socket.on('gameOver', ({ winner }) => {
             isGameOver = true;
-            document.getElementById('winner-text').innerText = 
-                (winner === playerSide ? 'BẠN' : 'ĐỐI THỦ') + ' THẮNG!';
-            document.getElementById('game-over').style.display = 'flex';
+            const winnerText = document.getElementById('winner-text');
+            if (winnerText) {
+                winnerText.innerText = (winner === playerSide ? 'BẠN' : 'ĐỐI THỦ') + ' THẮNG!';
+            }
+            const gameOverEl = document.getElementById('game-over');
+            if (gameOverEl) {
+                gameOverEl.style.display = 'flex';
+            }
         });
         
         socket.on('playerLeft', ({ playerId: pid }) => {
@@ -1893,7 +1908,6 @@
     });
     
     // Dice roll function - both players roll
-    let diceRolled = false;
     let otherPlayerDiceResult = null;
     
     function rollDice() {
@@ -2013,6 +2027,98 @@
         });
     }
     
+    // Reset game to menu
+    function resetToMenu() {
+        // Reset all game state
+        isGameOver = false;
+        isOnlineGame = false;
+        isBotMode = false;
+        gameRoomId = null;
+        isHost = false;
+        playerId = null;
+        coinFlipped = false;
+        coinResult = null;
+        diceRolled = false;
+        playerSide = null;
+        selectedPiece = null;
+        validMoves = [];
+        pieces = [];
+        deadChess = [];
+        deadXQ = [];
+        currentTurn = "chess";
+        lastMove = null;
+        enPassantTarget = null;
+        gameHistory = [];
+        viewIndex = -1;
+        isReviewing = false;
+        pendingPromotion = null;
+        botSide = null;
+        
+        // Disconnect socket if connected
+        if (socket && socket.connected) {
+            socket.disconnect();
+            console.log('Disconnected from server for menu reset');
+        }
+        
+        // Hide all game screens
+        const gameOverEl = document.getElementById('game-over');
+        const startScreenEl = document.getElementById('start-screen');
+        const roomInfoEl = document.getElementById('room-info');
+        const diceSectionEl = document.getElementById('dice-section');
+        const coinFlipSectionEl = document.getElementById('coin-flip-section');
+        const boardContainerEl = document.getElementById('board-container');
+        const chatButtonEl = document.getElementById('chat-button');
+        const chatContainerEl = document.getElementById('chat-container');
+        
+        if (gameOverEl) gameOverEl.style.display = 'none';
+        if (roomInfoEl) roomInfoEl.style.display = 'none';
+        if (diceSectionEl) diceSectionEl.style.display = 'none';
+        if (coinFlipSectionEl) coinFlipSectionEl.style.display = 'none';
+        if (boardContainerEl) boardContainerEl.style.display = 'none';
+        if (chatButtonEl) chatButtonEl.classList.remove('show');
+        if (chatContainerEl) chatContainerEl.classList.remove('show');
+        
+        // Show start screen
+        if (startScreenEl) {
+            startScreenEl.style.display = 'flex';
+        }
+        
+        // Reset UI
+        if (msgEl) {
+            msgEl.innerText = '';
+            msgEl.style.color = '';
+        }
+        
+        // Clear board
+        if (boardEl) {
+            boardEl.innerHTML = '';
+        }
+        
+        console.log('Reset to menu completed');
+    }
+    
+    // Play again function
+    function playAgain() {
+        if (isOnlineGame && gameRoomId) {
+            // Online game - disconnect and reset
+            if (socket && socket.connected) {
+                socket.emit('leaveRoom', { roomCode: gameRoomId });
+                socket.disconnect();
+            }
+            resetToMenu();
+            // Reconnect after a short delay
+            setTimeout(() => {
+                connectToServer();
+            }, 500);
+        } else if (isBotMode) {
+            // Bot game - just reset
+            resetToMenu();
+        } else {
+            // Offline game - reset
+            resetToMenu();
+        }
+    }
+    
     function startOnlineGame(firstTurn) {
         console.log('startOnlineGame called:', { firstTurn, isOnlineGame, isBotMode });
         
@@ -2108,6 +2214,16 @@
     let isBotMode = false; // Chế độ chơi với BOT
     let botSide = null; // Bên mà BOT chơi (chess hoặc xiangqi)
     let enPassantTarget = null; // {r, c} - Vị trí tốt có thể bị ăn en passant
+    
+    // Online game state
+    let isOnlineGame = false;
+    let gameRoomId = null;
+    let isHost = false;
+    let playerId = null;
+    let coinFlipped = false;
+    let coinResult = null;
+    let diceRolled = false;
+    let playerSide = null;
 
     // Elements
     const boardEl = document.getElementById("board");

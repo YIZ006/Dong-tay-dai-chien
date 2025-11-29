@@ -1994,7 +1994,17 @@
         socket.on('sidesAssigned', ({ players: playersList }) => {
             document.getElementById('coin-flip-section').style.display = 'none';
             document.getElementById('player1-choice').style.display = 'none';
-            document.getElementById('dice-section').style.display = 'block';
+            
+            const diceSection = document.getElementById('dice-section');
+            if (diceSection) {
+                diceSection.style.display = 'block';
+            }
+            
+            const resultEl = document.getElementById('dice-result-text');
+            if (resultEl) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '⏳ Vui lòng chờ đến lượt bạn tung xúc xắc...';
+            }
             
             // Reset dice state để cả 2 player đều có thể tung
             diceRolled = false;
@@ -2025,11 +2035,7 @@
         socket.on('gameStarted', ({ players: playersList, currentTurn, diceResults, firstTurnPlayer }) => {
             console.log('gameStarted event received:', { playersList, currentTurn, diceResults, firstTurnPlayer });
             
-            // Hide dice section
-            const diceSection = document.getElementById('dice-section');
-            if (diceSection) {
-                diceSection.style.display = 'none';
-            }
+            // KHÔNG ẩn dice section ngay, để hiển thị kết quả trong 5 giây
             
             // Hide room info
             const roomInfo = document.getElementById('room-info');
@@ -2059,10 +2065,18 @@
                 }
             });
             
+            // Đảm bảo dice section được hiển thị
+            const diceSection = document.getElementById('dice-section');
+            if (diceSection) {
+                diceSection.style.display = 'block';
+            }
+            
             // Show who goes first with dice comparison
-            if (firstTurnPlayer && diceResults) {
-                const resultEl = document.getElementById('dice-result-text');
-                if (resultEl) {
+            const resultEl = document.getElementById('dice-result-text');
+            if (resultEl) {
+                resultEl.style.display = 'block';
+                
+                if (firstTurnPlayer && diceResults) {
                     const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
                     const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
                     const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
@@ -2085,6 +2099,9 @@
                     }
                     
                     resultEl.innerHTML = `<br><br>🎲 <strong>Bạn</strong>: <strong>${myResult}</strong> | <strong>${otherPlayerName}</strong>: <strong>${otherResult}</strong><br>${comparisonText}<br><br>⏳ Đang so sánh kết quả...`;
+                } else {
+                    // Nếu chưa có kết quả, hiển thị thông báo chờ
+                    resultEl.innerHTML = '⏳ Vui lòng chờ...';
                 }
             }
             
@@ -2099,31 +2116,34 @@
             
             // Delay 5 giây trước khi bắt đầu game để hiển thị kết quả so xúc sắc
             setTimeout(() => {
-                // Cập nhật lại hiển thị kết quả cuối cùng
-                if (firstTurnPlayer && diceResults) {
-                    const resultEl = document.getElementById('dice-result-text');
-                    if (resultEl) {
-                        const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
-                        const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
-                        const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
-                        
-                        const myPlayer = playersList.find(p => p.id === playerId);
-                        const isPlayer1 = myPlayer && playersList.indexOf(myPlayer) === 0;
-                        const myResult = isPlayer1 ? player1Result : player2Result;
-                        const otherResult = isPlayer1 ? player2Result : player1Result;
-                        const otherPlayerName = isPlayer1 ? 'Player 2' : 'Player 1';
-                        
-                        let comparisonText = '';
-                        if (myResult > otherResult) {
-                            comparisonText = '<span style="color: #2ecc71; font-weight: bold;">✓ Bạn thắng!</span>';
-                        } else if (myResult < otherResult) {
-                            comparisonText = '<span style="color: #e74c3c; font-weight: bold;">✗ Bạn thua!</span>';
-                        } else {
-                            comparisonText = '<span style="color: #f39c12; font-weight: bold;">= Hòa!</span>';
-                        }
-                        
-                        resultEl.innerHTML = `<br><br>🎲 <strong>Bạn</strong>: <strong>${myResult}</strong> | <strong>${otherPlayerName}</strong>: <strong>${otherResult}</strong><br>${comparisonText}<br><br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
+                // Ẩn dice section sau khi hiển thị kết quả
+                const diceSection = document.getElementById('dice-section');
+                if (diceSection) {
+                    diceSection.style.display = 'none';
+                }
+                
+                // Cập nhật lại hiển thị kết quả cuối cùng (nếu có)
+                if (firstTurnPlayer && diceResults && resultEl) {
+                    const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
+                    const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
+                    const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
+                    
+                    const myPlayer = playersList.find(p => p.id === playerId);
+                    const isPlayer1 = myPlayer && playersList.indexOf(myPlayer) === 0;
+                    const myResult = isPlayer1 ? player1Result : player2Result;
+                    const otherResult = isPlayer1 ? player2Result : player1Result;
+                    const otherPlayerName = isPlayer1 ? 'Player 2' : 'Player 1';
+                    
+                    let comparisonText = '';
+                    if (myResult > otherResult) {
+                        comparisonText = '<span style="color: #2ecc71; font-weight: bold;">✓ Bạn thắng!</span>';
+                    } else if (myResult < otherResult) {
+                        comparisonText = '<span style="color: #e74c3c; font-weight: bold;">✗ Bạn thua!</span>';
+                    } else {
+                        comparisonText = '<span style="color: #f39c12; font-weight: bold;">= Hòa!</span>';
                     }
+                    
+                    resultEl.innerHTML = `<br><br>🎲 <strong>Bạn</strong>: <strong>${myResult}</strong> | <strong>${otherPlayerName}</strong>: <strong>${otherResult}</strong><br>${comparisonText}<br><br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
                 }
                 
                 // Khởi tạo game sau delay
@@ -2727,6 +2747,13 @@
             const resultEl = document.getElementById('dice-result-text');
             if (!resultEl) return;
             
+            // Đảm bảo dice section được hiển thị
+            const diceSection = document.getElementById('dice-section');
+            if (diceSection) {
+                diceSection.style.display = 'block';
+            }
+            resultEl.style.display = 'block';
+            
             if (diceRolled) {
                 // Both players have rolled, update display with comparison
                 const currentText = resultEl.innerHTML;
@@ -2746,17 +2773,9 @@
                 }
                 
                 resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: <strong>${otherResult}</strong>${comparisonText}<br><br>⏳ Đang so sánh kết quả...`);
-                
-                // Delay 5 giây trước khi bắt đầu game
-                setTimeout(() => {
-                    if (resultEl) {
-                        resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: <strong>${otherResult}</strong>${comparisonText}`);
-                    }
-                }, 5000);
             } else {
-                // Other player rolled first
-                resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br>Đến lượt bạn tung xúc xắc!`;
-                resultEl.style.display = 'block';
+                // Other player rolled first - hiển thị thông báo chờ
+                resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br><br>⏳ Vui lòng chờ đến lượt bạn tung xúc xắc...`;
                 
                 // Đảm bảo dice có thể click được
                 const dice = document.getElementById('dice');

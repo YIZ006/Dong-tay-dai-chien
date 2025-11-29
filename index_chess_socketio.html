@@ -416,11 +416,24 @@
         }
         .square.dark { background: rgba(139, 69, 19, 0.2); }
         
-        /* Special Tile Styling */
+        /* Special Tile Styling - Màu xanh da trời phát sáng */
         .square.special-tile {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.3)) !important;
-            border: 2px solid rgba(255, 215, 0, 0.6);
+            background: linear-gradient(135deg, rgba(30, 144, 255, 0.4), rgba(0, 191, 255, 0.4)) !important;
+            border: 2px solid rgba(30, 144, 255, 0.8);
             position: relative;
+            box-shadow: 0 0 15px rgba(30, 144, 255, 0.6), inset 0 0 10px rgba(0, 191, 255, 0.3);
+            animation: glowBlue 2s ease-in-out infinite;
+        }
+        
+        @keyframes glowBlue {
+            0%, 100% { 
+                box-shadow: 0 0 15px rgba(30, 144, 255, 0.6), inset 0 0 10px rgba(0, 191, 255, 0.3);
+                border-color: rgba(30, 144, 255, 0.8);
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(30, 144, 255, 0.9), 0 0 35px rgba(0, 191, 255, 0.6), inset 0 0 15px rgba(0, 191, 255, 0.5);
+                border-color: rgba(0, 191, 255, 1);
+            }
         }
         
         .square.special-tile::before {
@@ -430,20 +443,29 @@
             right: 2px;
             font-size: 12px;
             z-index: 5;
+            filter: drop-shadow(0 0 3px rgba(0, 191, 255, 0.8));
         }
         
         .square.special-tile-activated {
-            animation: flashSpecial 0.5s ease-in-out;
+            animation: flashSpecialBlue 0.5s ease-in-out;
         }
         
-        @keyframes flashSpecial {
-            0%, 100% { background: rgba(255, 215, 0, 0.3); }
-            50% { background: rgba(255, 215, 0, 0.8); box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+        @keyframes flashSpecialBlue {
+            0%, 100% { 
+                background: linear-gradient(135deg, rgba(30, 144, 255, 0.4), rgba(0, 191, 255, 0.4));
+                box-shadow: 0 0 15px rgba(30, 144, 255, 0.6);
+            }
+            50% { 
+                background: linear-gradient(135deg, rgba(30, 144, 255, 0.9), rgba(0, 191, 255, 0.9));
+                box-shadow: 0 0 30px rgba(30, 144, 255, 1), 0 0 50px rgba(0, 191, 255, 0.8);
+            }
         }
         
         .square.special-tile-destroyed {
             background: rgba(100, 100, 100, 0.4) !important;
             border: 2px dashed rgba(150, 150, 150, 0.6);
+            animation: none;
+            box-shadow: none;
         }
         
         .square.special-tile-destroyed::before {
@@ -1100,6 +1122,22 @@
                     </button>
                 </div>
             </div>
+            <div style="margin: 20px 0;">
+                <div style="color: var(--text-gold); font-size: 1rem; margin-bottom: 10px; text-align: center;">
+                    🎯 Chọn Độ Khó Bot:
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="mode-btn" id="btn-difficulty-easy" onclick="selectBotDifficulty('easy')" style="flex: 1;">
+                        😊 Dễ
+                    </button>
+                    <button class="mode-btn" id="btn-difficulty-medium" onclick="selectBotDifficulty('medium')" style="flex: 1;">
+                        😐 Trung Bình
+                    </button>
+                    <button class="mode-btn" id="btn-difficulty-hard" onclick="selectBotDifficulty('hard')" style="flex: 1;">
+                        😤 Khó
+                    </button>
+                </div>
+            </div>
             <button class="main-btn" onclick="startBotGame()" style="font-size: 1.3rem; padding: 15px 40px;">
                 🤖 Bắt Đầu Chơi Với BOT
             </button>
@@ -1195,11 +1233,17 @@
     <div id="status-bar">
         <div id="turn-badge" class="badge">...</div>
         <div id="message" style="color: red; font-weight: bold;"></div>
+        <div id="keyboard-hints" style="display: flex; gap: 8px; margin-left: 10px; font-size: 0.75rem; color: #888; align-items: center;">
+            <span title="Đi lại (chỉ trong chế độ bot)">⌨️ Z: Đi lại</span>
+            <span title="Reset game">R: Reset</span>
+            <span title="Đầu hàng">S: Đầu hàng</span>
+            <span title="Xin hòa">D: Xin hòa</span>
+        </div>
         <div style="display: flex; gap: 10px; margin-left: auto;">
-            <button id="btn-resign" class="game-action-btn btn-resign" onclick="resignGame()" title="Đầu hàng">
+            <button id="btn-resign" class="game-action-btn btn-resign" onclick="resignGame()" title="Đầu hàng (S)">
                 🏳️ Đầu Hàng
             </button>
-            <button id="btn-draw" class="game-action-btn btn-draw" onclick="offerDraw()" title="Xin hòa">
+            <button id="btn-draw" class="game-action-btn btn-draw" onclick="offerDraw()" title="Xin hòa (D)">
                 🤝 Xin Hòa
             </button>
         </div>
@@ -1357,6 +1401,17 @@
         playerSide = side;
         botSide = side === 'chess' ? 'xiangqi' : 'chess';
     }
+    
+    // ========== BOT DIFFICULTY SELECTION ==========
+    function selectBotDifficulty(difficulty) {
+        botDifficulty = difficulty;
+        document.getElementById('btn-difficulty-easy').classList.toggle('active', difficulty === 'easy');
+        document.getElementById('btn-difficulty-medium').classList.toggle('active', difficulty === 'medium');
+        document.getElementById('btn-difficulty-hard').classList.toggle('active', difficulty === 'hard');
+    }
+    
+    // Khởi tạo độ khó mặc định
+    selectBotDifficulty('medium');
     
     // ========== MODE SELECTION ==========
     function selectMode(mode) {
@@ -2446,6 +2501,7 @@
         isGameOver = false;
         isOnlineGame = false;
         isBotMode = false;
+        botDifficulty = 'medium'; // Reset độ khó về mặc định
         gameRoomId = null;
         isHost = false;
         playerId = null;
@@ -2465,10 +2521,8 @@
         // Reset special tile state
         specialTileState = {
             activatedBy: null,
-            pawnDestroyed: false,
             xiangqiGeneralUnlocked: false
         };
-        specialTilePawn = null;
         gameHistory = [];
         viewIndex = -1;
         isReviewing = false;
@@ -2560,14 +2614,8 @@
         // Reset special tile state
         specialTileState = {
             activatedBy: null,
-            pawnDestroyed: false,
             xiangqiGeneralUnlocked: false
-        };
-        specialTilePawn = pieces.find(p => p.isSpecialPawn);
-        if (specialTilePawn) {
-            specialTilePawn.r = SPECIAL_TILE.r;
-            specialTilePawn.c = SPECIAL_TILE.c;
-        }
+        }; // Không còn tốt kích hoạt nữa
         
         // Hide start screen
         const startScreen = document.getElementById('start-screen');
@@ -2717,13 +2765,11 @@
     let enPassantTarget = null; // {r, c} - Vị trí tốt có thể bị ăn en passant
     
     // ========== SPECIAL TILE SYSTEM ==========
-    const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải (cạnh quân Xe)
+    const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải, bên cạnh Xe cờ Vua
     let specialTileState = {
         activatedBy: null, // null | 'chess' | 'xiangqi'
-        pawnDestroyed: false, // Tốt kích hoạt có bị ăn chưa
         xiangqiGeneralUnlocked: false // Tướng cờ tướng đã được unlock chưa
     };
-    let specialTilePawn = null; // Reference đến con tốt kích hoạt
 
     // Elements
     const boardEl = document.getElementById("board");
@@ -2750,8 +2796,8 @@
         { type: "xe", side: "xiangqi", r: 9, c: 8 },
         { type: "pháo", side: "xiangqi", r: 7, c: 1 }, { type: "pháo", side: "xiangqi", r: 7, c: 7 },
         ...[0,2,4,6,8].map(c => ({ type: "tốt", side: "xiangqi", r: 6, c })),
-        // Con tốt kích hoạt trên ô đặc biệt
-        { type: "tốt", side: "xiangqi", r: SPECIAL_TILE.r, c: SPECIAL_TILE.c, isSpecialPawn: true },
+        // Con tốt cờ vua ở hàng ngang (hàng 1, cột 8) để bảo vệ ô đặc biệt ở góc trên bên phải
+        { type: "pawn", side: "chess", r: 1, c: 8, hasMoved: false, hasShield: true },
     ];
 
     // --- START ---
@@ -2833,11 +2879,7 @@
                         pawnDestroyed: false,
                         xiangqiGeneralUnlocked: false
                     };
-                    specialTilePawn = pieces.find(p => p.isSpecialPawn);
-                    if (specialTilePawn) {
-                        specialTilePawn.r = SPECIAL_TILE.r;
-                        specialTilePawn.c = SPECIAL_TILE.c;
-                    }
+                    specialTilePawn = null; // Không còn tốt kích hoạt nữa
                     
                     // Ẩn các màn hình menu
                     document.getElementById("start-screen").style.display = "none";
@@ -2941,15 +2983,7 @@
             return;
         }
         
-        // Kiểm tra nếu tốt kích hoạt đã bị ăn
-        if (specialTileState.pawnDestroyed) {
-            if (msgEl) {
-                msgEl.innerText = '⚠️ Ô đặc biệt đã bị phá hủy!';
-                msgEl.style.color = '#e74c3c';
-                setTimeout(() => { if (msgEl) msgEl.innerText = ''; }, 3000);
-            }
-            return;
-        }
+        // Không cần kiểm tra tốt kích hoạt nữa vì đã xóa
         
         // Kiểm tra loại quân cờ
         if (piece.side === 'xiangqi') {
@@ -2971,7 +3005,7 @@
     }
     
     /**
-     * Mở khóa Tướng cờ tướng - cho phép đi dọc không giới hạn và ra khỏi cung thành
+     * Mở khóa Tướng cờ tướng - cho phép đi ngang hoặc dọc 1 ô và ra khỏi cung thành
      */
     function unlockXiangqiGeneral() {
         const general = pieces.find(p => p.side === 'xiangqi' && p.type === 'tướng');
@@ -2985,12 +3019,12 @@
             '✨ TƯỚNG ĐÃ ĐƯỢC MỞ KHÓA!',
             '⛩️',
             'Quân cờ Tướng của bạn đã chạm vào ô chức năng đặc biệt!',
-            'Tướng giờ đây có thể:\n• Đi dọc (lên/xuống) không giới hạn số ô\n• Ra khỏi cung thành\n• Vẫn bị chặn bởi quân trên đường đi'
+            'Tướng giờ đây có thể:\n• Đi ngang hoặc dọc 1 ô mỗi lượt\n• Ra khỏi cung thành\n• Di chuyển tự do trên bàn cờ'
         );
         
         // Hiệu ứng và thông báo trên message bar
         if (msgEl) {
-            msgEl.innerText = '✨ TƯỚNG ĐÃ ĐƯỢC MỞ KHÓA! Có thể đi dọc không giới hạn!';
+            msgEl.innerText = '✨ TƯỚNG ĐÃ ĐƯỢC MỞ KHÓA! Có thể đi ngang hoặc dọc 1 ô, ra khỏi cung thành!';
             msgEl.style.color = '#2ecc71';
             msgEl.style.fontWeight = 'bold';
             setTimeout(() => { 
@@ -3288,20 +3322,39 @@
             const defenseScore = getDefenseScore(move.r, move.c, botSide, testPieces);
             score += defenseScore * 3;
             
+            // 8. Đánh giá điểm vị trí của quân sau khi di chuyển
+            const positionScore = getPositionScore(piece, move.r, move.c);
+            score += positionScore * 10;
+            
+            // 9. Đánh giá tổng thể bàn cờ sau nước đi (heuristic evaluation)
+            const boardEvaluation = evaluateBoard(testPieces, botSide);
+            score += boardEvaluation * 0.1; // Thêm điểm đánh giá tổng thể
+            
             return { piece, move, score };
         });
         
         // Sắp xếp theo điểm số giảm dần
         scoredMoves.sort((a, b) => b.score - a.score);
         
-        // Chọn nước đi tốt nhất (có thể thêm một chút ngẫu nhiên cho top 3 nước đi tốt nhất)
+        // Chọn nước đi dựa trên độ khó bot
         let chosenMove;
-        const topMoves = scoredMoves.filter(m => m.score >= scoredMoves[0].score - 50); // Top moves gần bằng nhau
-        if (topMoves.length > 1 && scoredMoves[0].score < 500) {
-            // Nếu không có nước đi quá tốt, chọn ngẫu nhiên trong top moves
-            chosenMove = topMoves[Math.floor(Math.random() * Math.min(topMoves.length, 3))];
+        if (botDifficulty === 'easy') {
+            // Dễ: chọn ngẫu nhiên từ top 50% nước đi (có thể chọn nước đi không tốt)
+            const randomIndex = Math.floor(Math.random() * Math.min(scoredMoves.length, Math.max(1, Math.floor(scoredMoves.length * 0.5))));
+            chosenMove = scoredMoves[randomIndex];
+        } else if (botDifficulty === 'medium') {
+            // Trung bình: chọn ngẫu nhiên từ top 3-5 nước đi tốt nhất
+            const topMoves = scoredMoves.filter(m => m.score >= scoredMoves[0].score - 100);
+            const randomIndex = Math.floor(Math.random() * Math.min(topMoves.length, 5));
+            chosenMove = topMoves[randomIndex];
         } else {
-            chosenMove = scoredMoves[0]; // Chọn nước đi tốt nhất
+            // Khó: chọn nước đi tốt nhất hoặc gần tốt nhất
+            const topMoves = scoredMoves.filter(m => m.score >= scoredMoves[0].score - 50);
+            if (topMoves.length > 1 && scoredMoves[0].score < 500) {
+                chosenMove = topMoves[Math.floor(Math.random() * Math.min(topMoves.length, 3))];
+            } else {
+                chosenMove = scoredMoves[0]; // Chọn nước đi tốt nhất
+            }
         }
         
         // Thực hiện nước đi
@@ -3313,12 +3366,6 @@
         let captured = null;
         if (targetIdx !== -1) {
             captured = pieces[targetIdx];
-            
-            // Kiểm tra nếu tốt kích hoạt bị ăn (cho bot)
-            if (captured.isSpecialPawn) {
-                specialTileState.pawnDestroyed = true;
-                specialTilePawn = null;
-            }
             
             pieces.splice(targetIdx, 1);
             if (captured.side === "chess") deadChess.push(captured.type);
@@ -3392,6 +3439,9 @@
         finishTurn();
     }
     
+    // ========== BOT DIFFICULTY ==========
+    let botDifficulty = 'medium'; // 'easy', 'medium', 'hard'
+    
     function getPieceValue(piece) {
         if (!piece) return 0;
         const values = {
@@ -3401,6 +3451,199 @@
             "tốt": 1, "mã": 4, "tượng": 2, "sĩ": 2, "xe": 9, "pháo": 4.5, "tướng": 100
         };
         return values[piece.type] || 0;
+    }
+    
+    // Hàm đánh giá điểm theo vị trí của từng quân cờ
+    function getPositionScore(piece, r, c) {
+        if (!piece) return 0;
+        let score = 0;
+        
+        // Bảng điểm vị trí cho cờ Vua
+        if (piece.side === "chess") {
+            if (piece.type === "pawn") {
+                // Tốt cờ vua: tốt nhất ở hàng 6-7 (gần phong cấp)
+                const pawnTable = [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5],
+                    [1, 1, 2, 3, 3, 3, 2, 1, 1],
+                    [0.5, 0.5, 1, 2.5, 2.5, 2.5, 1, 0.5, 0.5],
+                    [0, 0, 0, 2, 2, 2, 0, 0, 0],
+                    [0.5, -0.5, -1, 0, 0, 0, -1, -0.5, 0.5],
+                    [0.5, 1, 1, -2, -2, -2, 1, 1, 0.5],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ];
+                score += pawnTable[r] ? (pawnTable[r][c] || 0) : 0;
+            } else if (piece.type === "knight") {
+                // Mã: tốt nhất ở trung tâm
+                const knightTable = [
+                    [-5, -4, -3, -3, -3, -3, -3, -4, -5],
+                    [-4, -2, 0, 0, 0, 0, 0, -2, -4],
+                    [-3, 0, 1, 1.5, 1.5, 1.5, 1, 0, -3],
+                    [-3, 0.5, 1.5, 2, 2, 2, 1.5, 0.5, -3],
+                    [-3, 0, 1.5, 2, 2, 2, 1.5, 0, -3],
+                    [-3, 0.5, 1, 1.5, 1.5, 1.5, 1, 0.5, -3],
+                    [-4, -2, 0, 0.5, 0.5, 0.5, 0, -2, -4],
+                    [-5, -4, -3, -3, -3, -3, -3, -4, -5],
+                    [-5, -4, -3, -3, -3, -3, -3, -4, -5],
+                    [-5, -4, -3, -3, -3, -3, -3, -4, -5]
+                ];
+                score += knightTable[r] ? (knightTable[r][c] || 0) : 0;
+            } else if (piece.type === "bishop") {
+                // Tượng: tốt nhất ở đường chéo trung tâm
+                const bishopTable = [
+                    [-2, -1, -1, -1, -1, -1, -1, -1, -2],
+                    [-1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, 0, 0.5, 1, 1, 1, 0.5, 0, -1],
+                    [-1, 0.5, 0.5, 1, 1, 1, 0.5, 0.5, -1],
+                    [-1, 0, 1, 1, 1, 1, 1, 0, -1],
+                    [-1, 1, 1, 1, 1, 1, 1, 1, -1],
+                    [-1, 0.5, 0, 0, 0, 0, 0, 0.5, -1],
+                    [-2, -1, -1, -1, -1, -1, -1, -1, -2],
+                    [-2, -1, -1, -1, -1, -1, -1, -1, -2],
+                    [-2, -1, -1, -1, -1, -1, -1, -1, -2]
+                ];
+                score += bishopTable[r] ? (bishopTable[r][c] || 0) : 0;
+            } else if (piece.type === "rook") {
+                // Xe: tốt nhất ở hàng/cột mở
+                const rookTable = [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0.5, 1, 1, 1, 1, 1, 1, 1, 0.5],
+                    [-0.5, 0, 0, 0, 0, 0, 0, 0, -0.5],
+                    [-0.5, 0, 0, 0, 0, 0, 0, 0, -0.5],
+                    [-0.5, 0, 0, 0, 0, 0, 0, 0, -0.5],
+                    [-0.5, 0, 0, 0, 0, 0, 0, 0, -0.5],
+                    [-0.5, 0, 0, 0, 0, 0, 0, 0, -0.5],
+                    [0, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0],
+                    [0, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ];
+                score += rookTable[r] ? (rookTable[r][c] || 0) : 0;
+            } else if (piece.type === "queen") {
+                // Hậu: tốt nhất ở trung tâm
+                const queenTable = [
+                    [-2, -1, -1, -0.5, -0.5, -0.5, -1, -1, -2],
+                    [-1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0, -1],
+                    [-0.5, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
+                    [0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0],
+                    [-0.5, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
+                    [-1, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0, -1],
+                    [-1, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-2, -1, -1, -0.5, -0.5, -0.5, -1, -1, -2],
+                    [-2, -1, -1, -0.5, -0.5, -0.5, -1, -1, -2]
+                ];
+                score += queenTable[r] ? (queenTable[r][c] || 0) : 0;
+            } else if (piece.type === "king") {
+                // Vua: tốt nhất ở góc khi mở đầu, ở giữa khi tàn cuộc
+                const kingTable = [
+                    [-3, -4, -4, -5, -5, -5, -4, -4, -3],
+                    [-3, -4, -4, -5, -5, -5, -4, -4, -3],
+                    [-3, -4, -4, -5, -5, -5, -4, -4, -3],
+                    [-3, -4, -4, -5, -5, -5, -4, -4, -3],
+                    [-2, -3, -3, -4, -4, -4, -3, -3, -2],
+                    [-1, -2, -2, -2, -2, -2, -2, -2, -1],
+                    [2, 2, 0, 0, 0, 0, 0, 2, 2],
+                    [2, 3, 1, 0, 0, 0, 1, 3, 2],
+                    [3, 4, 2, 0, 0, 0, 2, 4, 3],
+                    [3, 4, 2, 0, 0, 0, 2, 4, 3]
+                ];
+                score += kingTable[r] ? (kingTable[r][c] || 0) : 0;
+            }
+        } else if (piece.side === "xiangqi") {
+            // Bảng điểm vị trí cho cờ Tướng
+            if (piece.type === "tốt") {
+                // Tốt cờ tướng: tốt nhất khi qua sông và tiến về phía đối thủ
+                const xqPawnTable = [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ];
+                // Tốt qua sông (r < 5) có giá trị cao hơn
+                if (r < 5) {
+                    score += 2; // Qua sông
+                    if (r < 3) score += 1; // Gần đối thủ
+                }
+            } else if (piece.type === "mã") {
+                // Mã cờ tướng: tốt nhất ở trung tâm và gần đối thủ
+                const xqKnightTable = [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 1, 2, 2, 2, 1, 0, 0],
+                    [0, 0, 1, 2, 2, 2, 1, 0, 0],
+                    [0, 0, 1, 2, 2, 2, 1, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ];
+                score += xqKnightTable[r] ? (xqKnightTable[r][c] || 0) : 0;
+            } else if (piece.type === "xe") {
+                // Xe cờ tướng: tốt nhất ở hàng/cột mở và gần đối thủ
+                const xqRookTable = [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ];
+                score += xqRookTable[r] ? (xqRookTable[r][c] || 0) : 0;
+            } else if (piece.type === "pháo") {
+                // Pháo: tốt nhất ở hàng sau và trung tâm
+                const xqCannonTable = [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ];
+                // Pháo tốt nhất ở hàng sau (r >= 7) và trung tâm
+                if (r >= 7 && c >= 3 && c <= 5) score += 1;
+            }
+        }
+        
+        return score;
+    }
+    
+    // Hàm đánh giá tổng thể cho một trạng thái bàn cờ
+    function evaluateBoard(_pieces = pieces, side = botSide) {
+        let totalScore = 0;
+        const opponentSide = side === "chess" ? "xiangqi" : "chess";
+        
+        // Tính điểm cho từng quân cờ
+        for (const piece of _pieces) {
+            if (piece.side === side) {
+                // Điểm giá trị quân cờ
+                totalScore += getPieceValue(piece) * 100;
+                // Điểm vị trí
+                totalScore += getPositionScore(piece, piece.r, piece.c) * 10;
+            } else if (piece.side === opponentSide) {
+                // Trừ điểm của đối thủ
+                totalScore -= getPieceValue(piece) * 100;
+                totalScore -= getPositionScore(piece, piece.r, piece.c) * 10;
+            }
+        }
+        
+        return totalScore;
     }
     
     // Hàm helper để kiểm tra ô có bị tấn công không
@@ -3483,6 +3726,135 @@
         viewIndex = gameHistory.length - 1; isReviewing = false;
         drawBoard(gameHistory[viewIndex]); updateControls();
     }
+    
+    // ========== UNDO FUNCTION (for bot mode) ==========
+    function undoMove() {
+        if (isReviewing || isGameOver || pendingPromotion) return;
+        
+        // Chỉ cho phép undo trong chế độ bot và khi không phải lượt bot
+        if (!isBotMode || currentTurn === botSide) {
+            if (msgEl) {
+                msgEl.innerText = 'Chỉ có thể đi lại khi đến lượt bạn!';
+                msgEl.style.color = '#e74c3c';
+                setTimeout(() => {
+                    if (msgEl) {
+                        msgEl.innerText = '';
+                        msgEl.style.color = '';
+                    }
+                }, 2000);
+            }
+            return;
+        }
+        
+        // Cần ít nhất 2 trạng thái để undo (hiện tại và trước đó)
+        if (gameHistory.length < 2) {
+            if (msgEl) {
+                msgEl.innerText = 'Không thể đi lại!';
+                msgEl.style.color = '#e74c3c';
+                setTimeout(() => {
+                    if (msgEl) {
+                        msgEl.innerText = '';
+                        msgEl.style.color = '';
+                    }
+                }, 2000);
+            }
+            return;
+        }
+        
+        // Xóa 2 trạng thái cuối (nước đi của bot và của người chơi)
+        gameHistory.pop(); // Xóa trạng thái hiện tại
+        gameHistory.pop(); // Xóa trạng thái trước đó
+        
+        if (gameHistory.length > 0) {
+            // Khôi phục về trạng thái trước đó
+            const previousState = gameHistory[gameHistory.length - 1];
+            pieces = JSON.parse(JSON.stringify(previousState.pieces));
+            deadChess = [...previousState.deadChess];
+            deadXQ = [...previousState.deadXQ];
+            currentTurn = previousState.turn;
+            lastMove = previousState.lastMove;
+            isGameOver = previousState.isGameOver;
+            selectedPiece = null;
+            validMoves = [];
+            viewIndex = gameHistory.length - 1;
+            isReviewing = false;
+            
+            drawBoard();
+            updateControls();
+            updateStatusUI();
+            
+            if (msgEl) {
+                msgEl.innerText = 'Đã đi lại!';
+                msgEl.style.color = '#2ecc71';
+                setTimeout(() => {
+                    if (msgEl) {
+                        msgEl.innerText = '';
+                        msgEl.style.color = '';
+                    }
+                }, 2000);
+            }
+        } else {
+            // Nếu không còn lịch sử, reset về trạng thái ban đầu
+            pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
+            deadChess = [];
+            deadXQ = [];
+            currentTurn = 'chess';
+            lastMove = null;
+            isGameOver = false;
+            selectedPiece = null;
+            validMoves = [];
+            gameHistory = [];
+            viewIndex = -1;
+            isReviewing = false;
+            
+            drawBoard();
+            updateControls();
+            updateStatusUI();
+        }
+    }
+    
+    // ========== KEYBOARD SHORTCUTS ==========
+    document.addEventListener('keydown', function(event) {
+        // Chỉ xử lý khi không đang nhập text
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            return;
+        }
+        
+        const key = event.key.toLowerCase();
+        
+        // Z - Undo (đi lại) - chỉ trong chế độ bot
+        if (key === 'z' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            event.preventDefault();
+            undoMove();
+        }
+        
+        // R - Reset game
+        if (key === 'r' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            event.preventDefault();
+            if (!isReviewing && !pendingPromotion) {
+                if (confirm('Bạn có chắc chắn muốn reset lại game không?')) {
+                    resetToMenu();
+                }
+            }
+        }
+        
+        // S - Surrender (đầu hàng)
+        if (key === 's' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            event.preventDefault();
+            if (!isReviewing && !pendingPromotion && !isGameOver) {
+                resignGame();
+            }
+        }
+        
+        // D - Draw (xin hòa)
+        if (key === 'd' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            event.preventDefault();
+            if (!isReviewing && !pendingPromotion && !isGameOver) {
+                offerDraw();
+            }
+        }
+    });
 
     function updateControls() {
         btnPrev.disabled = viewIndex <= 0; btnNext.disabled = viewIndex >= gameHistory.length - 1;
@@ -3548,14 +3920,14 @@
                     square.classList.add("last-move");
                 }
                 
-                // Special Tile Marking
+                // Special Tile Marking - Ô i9 với màu xanh da trời phát sáng
                 if (r === SPECIAL_TILE.r && c === SPECIAL_TILE.c) {
                     square.classList.add("special-tile");
-                    if (specialTileState.pawnDestroyed) {
-                        square.classList.add("special-tile-destroyed");
-                    } else if (specialTileState.activatedBy) {
+                    if (specialTileState.activatedBy) {
                         const activatedText = specialTileState.activatedBy === 'chess' ? 'Cờ Vua' : 'Cờ Tướng';
                         square.title = `Đã kích hoạt bởi ${activatedText}`;
+                    } else {
+                        square.title = "Ô Chức Năng Đặc Biệt - Chạm vào để kích hoạt!";
                     }
                 }
                 
@@ -3610,7 +3982,7 @@
             // Overlay cho Tướng đã unlock
             if (p.type === "tướng" && p.side === "xiangqi" && p.unlocked) {
                 el.classList.add("unlocked-general");
-                el.title = "Tướng: Vertical Freedom - Có thể đi dọc không giới hạn!";
+                el.title = "Tướng: Đã mở khóa - Có thể đi ngang hoặc dọc 1 ô, ra khỏi cung thành!";
             }
             
             if (!isReviewing) el.onclick = (e) => { e.stopPropagation(); handlePieceClick(p); }; else el.style.cursor = "default";
@@ -3658,11 +4030,6 @@
         else { 
             el.classList.add("xq-side"); 
             el.innerText = XQ_CHARS[p.type] || p.type;
-            
-            // Thêm tooltip cho tốt kích hoạt
-            if (p.isSpecialPawn) {
-                el.title = "Tốt Kích Hoạt - Chạm vào để kích hoạt tính năng đặc biệt!";
-            }
         }
         return el;
     }
@@ -3889,13 +4256,6 @@
             } else if (targetIdx !== -1) {
                 // Ăn quân bình thường
                 let captured = pieces[targetIdx];
-                
-                // Kiểm tra nếu tốt kích hoạt bị ăn
-                if (captured.isSpecialPawn) {
-                    specialTileState.pawnDestroyed = true;
-                    specialTilePawn = null;
-                }
-                
                 pieces.splice(targetIdx, 1);
                 if (captured.side === "chess") deadChess.push(captured.type); else deadXQ.push(captured.type);
                 playSound('capture');
@@ -3958,8 +4318,29 @@
     function isSquareAttacked(r, c, sideBeingAttacked, _pieces = pieces) {
         let enemySide = sideBeingAttacked === "chess" ? "xiangqi" : "chess";
         let enemies = _pieces.filter(p => p.side === enemySide);
-        for (let enemy of enemies) { if (getPseudoMoves(enemy, _pieces).some(m => m.r === r && m.c === c)) return true; }
+        for (let enemy of enemies) { 
+            // Kiểm tra nếu là Vua/Tướng địch đứng cạnh - không tính là tấn công (vì hai Vua không thể đứng cạnh nhau)
+            if (enemy.type === "king" || enemy.type === "tướng") {
+                let dr = Math.abs(enemy.r - r);
+                let dc = Math.abs(enemy.c - c);
+                if (dr <= 1 && dc <= 1 && (dr + dc > 0)) {
+                    continue; // Bỏ qua Vua/Tướng địch ở cạnh
+                }
+            }
+            if (getPseudoMoves(enemy, _pieces).some(m => m.r === r && m.c === c)) return true; 
+        }
         return false;
+    }
+    
+    // Kiểm tra xem có Vua/Tướng địch ở cạnh ô (r, c) không
+    function hasEnemyKingAdjacent(r, c, side, _pieces = pieces) {
+        let enemySide = side === "chess" ? "xiangqi" : "chess";
+        let enemyKingType = enemySide === "chess" ? "king" : "tướng";
+        let enemyKing = _pieces.find(p => p.side === enemySide && p.type === enemyKingType);
+        if (!enemyKing) return false;
+        let dr = Math.abs(enemyKing.r - r);
+        let dc = Math.abs(enemyKing.c - c);
+        return dr <= 1 && dc <= 1 && (dr + dc > 0); // Cạnh nhau (không cùng ô)
     }
 
     function isKingInCheck(side, _pieces = pieces) {
@@ -4053,7 +4434,13 @@
         }
         else if (p.type === "king") {
             [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc]) => {
-                let nr = p.r+dr, nc = p.c+dc; if (inside(nr, nc) && !isAlly(nr, nc, p.side, _pieces)) moves.push({r: nr, c: nc});
+                let nr = p.r+dr, nc = p.c+dc; 
+                if (inside(nr, nc) && !isAlly(nr, nc, p.side, _pieces)) {
+                    // Không cho phép Vua di chuyển đến ô cạnh Vua/Tướng địch
+                    if (!hasEnemyKingAdjacent(nr, nc, p.side, _pieces)) {
+                        moves.push({r: nr, c: nc});
+                    }
+                }
             });
             if (_pieces === pieces && !p.hasMoved && !isKingInCheck("chess")) {
                 if (!isOccupied(0, 5) && !isOccupied(0, 6)) {
@@ -4167,17 +4554,16 @@
         }
         if (p.type==="tướng"||p.type==="sĩ") {
             if (p.type === "tướng" && p.unlocked) {
-                // Tướng đã được unlock - có thể đi dọc không giới hạn, ra khỏi cung thành
-                const verticalDirs = [[1,0],[-1,0]]; // Chỉ đi dọc (lên/xuống)
-                verticalDirs.forEach(([dr,dc]) => {
+                // Tướng đã được unlock - có thể đi ngang hoặc dọc 1 ô, ra khỏi cung thành
+                const dirs = [[1,0],[-1,0],[0,1],[0,-1]]; // Đi ngang hoặc dọc
+                dirs.forEach(([dr,dc]) => {
                     let nr = p.r + dr, nc = p.c + dc;
-                    // Đi từng ô cho đến khi gặp chướng ngại vật
-                    while (inside(nr, nc)) {
-                        if (isAlly(nr, nc, p.side, _pieces)) break; // Gặp đồng minh -> dừng
-                        moves.push({r: nr, c: nc});
-                        if (isOccupied(nr, nc, _pieces)) break; // Gặp địch -> ăn và dừng
-                        nr += dr;
-                        nc += dc;
+                    // Chỉ đi 1 ô
+                    if (inside(nr, nc) && !isAlly(nr, nc, p.side, _pieces)) {
+                        // Không cho phép Tướng di chuyển đến ô cạnh Vua địch
+                        if (!hasEnemyKingAdjacent(nr, nc, p.side, _pieces)) {
+                            moves.push({r: nr, c: nc});
+                        }
                     }
                 });
             } else {
@@ -4186,7 +4572,10 @@
                 dirs.forEach(([dr,dc]) => {
                     let nr=p.r+dr, nc=p.c+dc; 
                     if(inside(nr,nc) && isInPalace(nr,nc) && !isAlly(nr,nc,p.side, _pieces)) {
-                        moves.push({r:nr, c:nc});
+                        // Không cho phép Tướng di chuyển đến ô cạnh Vua địch
+                        if (!hasEnemyKingAdjacent(nr, nc, p.side, _pieces)) {
+                            moves.push({r:nr, c:nc});
+                        }
                     }
                 });
             }

@@ -673,6 +673,41 @@
         .move-dot { width: 16px; height: 16px; background: rgba(0, 255, 0, 0.6); border-radius: 50%; position: absolute; z-index: 20; pointer-events: none; box-shadow: 0 0 5px #fff; }
 
         #status-bar { display: flex; gap: 20px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+        
+        /* Timer Display */
+        .timer-badge {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .timer-badge.active {
+            border-color: #f1c40f;
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
+            background: rgba(241, 196, 15, 0.1);
+            color: #f1c40f;
+        }
+        .timer-badge.warning {
+            border-color: #f39c12;
+            color: #f39c12;
+            animation: pulseTimer 1s ease-in-out infinite;
+        }
+        .timer-badge.danger {
+            border-color: #e74c3c;
+            color: #e74c3c;
+            animation: pulseTimer 0.5s ease-in-out infinite;
+        }
+        @keyframes pulseTimer {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
         .badge { padding: 5px 25px; border-radius: 15px; font-weight: bold; border: 2px solid #fff; width: 250px; text-align: center; font-size: 1.1rem; }
         .game-action-btn {
             padding: 8px 20px;
@@ -1384,6 +1419,16 @@
 
     <div id="status-bar">
         <div id="turn-badge" class="badge">...</div>
+        <div id="timer-display" style="display: flex; gap: 15px; align-items: center; margin-left: 15px;">
+            <div id="chess-timer" class="timer-badge" style="display: none;">
+                <span style="font-size: 0.85rem; color: #888; margin-right: 5px;">🏰</span>
+                <span id="chess-timer-text">10:00</span>
+            </div>
+            <div id="xiangqi-timer" class="timer-badge" style="display: none;">
+                <span style="font-size: 0.85rem; color: #888; margin-right: 5px;">⛩️</span>
+                <span id="xiangqi-timer-text">10:00</span>
+            </div>
+        </div>
         <div id="message" style="color: red; font-weight: bold;"></div>
         <div id="keyboard-hints" style="display: flex; gap: 8px; margin-left: 10px; font-size: 0.75rem; color: #888; align-items: center;">
             <span title="Đi lại (chỉ trong chế độ bot)">⌨️ Z: Đi lại</span>
@@ -2696,6 +2741,9 @@
     
     // Reset game to menu
     function resetToMenu() {
+        // Dừng timer
+        stopTimer();
+        
         // Reset all game state
         isGameOver = false;
         isOnlineGame = false;
@@ -2730,6 +2778,13 @@
         positionHistory = []; // Reset lịch sử trạng thái
         pendingPromotion = null;
         botSide = null;
+        
+        // Reset timer
+        resetTimers();
+        
+        // Ẩn timer display
+        if (chessTimerEl) chessTimerEl.style.display = 'none';
+        if (xiangqiTimerEl) xiangqiTimerEl.style.display = 'none';
         
         // Disconnect socket if connected
         if (socket && socket.connected) {
@@ -2824,6 +2879,9 @@
         // Reset position history
         positionHistory = [];
         
+        // Reset và khởi động timer
+        resetTimers();
+        
         // Hide start screen
         const startScreen = document.getElementById('start-screen');
         if (startScreen) {
@@ -2845,6 +2903,10 @@
         // Draw the board
         console.log('Drawing board...');
         drawBoard();
+        updateStatusUI(currentTurn, pieces);
+        
+        // Bắt đầu timer
+        startTimer();
         
         console.log('Game started successfully:', { currentTurn, playerSide, piecesCount: pieces.length });
     }
@@ -2872,6 +2934,8 @@
         if (!confirm('Bạn có chắc chắn muốn đầu hàng không?')) {
             return;
         }
+        
+        stopTimer(); // Dừng timer khi đầu hàng
         
         if (isOnlineGame && gameRoomId) {
             // Online game - send to server
@@ -2915,6 +2979,7 @@
         } else {
             // Offline/Bot game - auto accept
             if (confirm('Bạn muốn hòa cờ không?')) {
+                stopTimer(); // Dừng timer khi hòa cờ
                 isGameOver = true;
                 const winnerText = document.getElementById('winner-text');
                 if (winnerText) {
@@ -2999,6 +3064,10 @@
     const btnLive = document.getElementById("btn-live");
     const promoModal = document.getElementById("promotion-modal");
     const activationModal = document.getElementById("special-activation-modal");
+    const chessTimerEl = document.getElementById("chess-timer");
+    const xiangqiTimerEl = document.getElementById("xiangqi-timer");
+    const chessTimerTextEl = document.getElementById("chess-timer-text");
+    const xiangqiTimerTextEl = document.getElementById("xiangqi-timer-text");
 
     const INITIAL_SETUP = [
         { type: "rook", side: "chess", r: 0, c: 0, hasMoved: false }, { type: "knight", side: "chess", r: 0, c: 1 },
@@ -3160,11 +3229,15 @@
         
         currentTurn = currentTurn === "chess" ? "xiangqi" : "chess";
         
+        // Đổi timer sang bên mới
+        startTimer();
+        
         // Xóa en passant target sau khi đổi lượt (nếu không được sử dụng)
         // Chỉ giữ lại nếu tốt vừa đi 2 ô ở lượt trước
         // Logic này được xử lý trong tryMoveTo
 
         if (isCheckmate(currentTurn)) {
+            stopTimer();
             isGameOver = true;
             const winner = currentTurn === "chess" ? "xiangqi" : "chess";
             if (isBotMode) {
@@ -3178,6 +3251,7 @@
         // Kiểm tra lặp lại trạng thái (threefold repetition)
         // Kiểm tra với trạng thái sau khi đổi lượt (vì cùng một trạng thái bàn cờ có thể xuất hiện ở các lượt khác nhau)
         if (!isGameOver && checkThreefoldRepetition()) {
+            stopTimer();
             isGameOver = true;
             const winnerText = document.getElementById('winner-text');
             if (winnerText) {
@@ -3201,6 +3275,7 @@
         }
         
         drawBoard();
+        updateStatusUI(currentTurn, pieces);
         
         // Nếu đang chơi với BOT và đến lượt BOT, cho BOT đi
         if (isBotMode && !isGameOver && currentTurn === botSide && botSide) {
@@ -4015,6 +4090,9 @@
     }
 
     function reviewMove(step) {
+        // Tạm dừng timer khi review
+        timerPaused = true;
+        
         let newIndex = viewIndex + step;
         if (newIndex >= 0 && newIndex < gameHistory.length) {
             viewIndex = newIndex; isReviewing = (viewIndex !== gameHistory.length - 1);
@@ -4024,7 +4102,9 @@
 
     function returnToLive() {
         viewIndex = gameHistory.length - 1; isReviewing = false;
+        timerPaused = false; // Tiếp tục timer khi quay lại live
         drawBoard(gameHistory[viewIndex]); updateControls();
+        updateStatusUI(currentTurn, pieces);
     }
     
     // ========== UNDO FUNCTION (for bot mode) ==========
@@ -4413,10 +4493,138 @@
         });
     }
 
+    // ========== TIMER FUNCTIONS ==========
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    function updateTimerDisplay() {
+        if (chessTimerTextEl) {
+            chessTimerTextEl.textContent = formatTime(chessTimer);
+            // Cảnh báo khi còn ít thời gian
+            if (chessTimer <= 30) {
+                chessTimerEl.classList.add('danger');
+                chessTimerEl.classList.remove('warning', 'active');
+            } else if (chessTimer <= 60) {
+                chessTimerEl.classList.add('warning');
+                chessTimerEl.classList.remove('danger', 'active');
+            } else {
+                chessTimerEl.classList.remove('warning', 'danger');
+            }
+        }
+        
+        if (xiangqiTimerTextEl) {
+            xiangqiTimerTextEl.textContent = formatTime(xiangqiTimer);
+            // Cảnh báo khi còn ít thời gian
+            if (xiangqiTimer <= 30) {
+                xiangqiTimerEl.classList.add('danger');
+                xiangqiTimerEl.classList.remove('warning', 'active');
+            } else if (xiangqiTimer <= 60) {
+                xiangqiTimerEl.classList.add('warning');
+                xiangqiTimerEl.classList.remove('danger', 'active');
+            } else {
+                xiangqiTimerEl.classList.remove('warning', 'danger');
+            }
+        }
+    }
+    
+    function startTimer() {
+        // Dừng timer cũ nếu có
+        stopTimer();
+        
+        // Chỉ chạy timer khi game đang diễn ra và không phải đang review
+        if (isGameOver || isReviewing || pendingPromotion) {
+            return;
+        }
+        
+        // Bắt đầu timer cho lượt hiện tại
+        timerInterval = setInterval(() => {
+            if (isGameOver || isReviewing || pendingPromotion || timerPaused) {
+                return;
+            }
+            
+            // Giảm thời gian của bên đang đi
+            if (currentTurn === "chess") {
+                chessTimer--;
+                if (chessTimer <= 0) {
+                    chessTimer = 0;
+                    handleTimeOut("chess");
+                }
+            } else {
+                xiangqiTimer--;
+                if (xiangqiTimer <= 0) {
+                    xiangqiTimer = 0;
+                    handleTimeOut("xiangqi");
+                }
+            }
+            
+            updateTimerDisplay();
+        }, 1000); // Cập nhật mỗi giây
+    }
+    
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+    
+    function handleTimeOut(side) {
+        stopTimer();
+        isGameOver = true;
+        
+        const winner = side === "chess" ? "xiangqi" : "chess";
+        const winnerText = document.getElementById('winner-text');
+        if (winnerText) {
+            if (isBotMode) {
+                winnerText.innerText = (winner === playerSide ? "BẠN" : "BOT") + " THẮNG!\n(" + (side === "chess" ? "Cờ Vua" : "Cờ Tướng") + " hết thời gian)";
+            } else {
+                winnerText.innerText = (winner === playerSide ? "BẠN" : "ĐỐI THỦ") + " THẮNG!\n(" + (side === "chess" ? "Cờ Vua" : "Cờ Tướng") + " hết thời gian)";
+            }
+        }
+        
+        const gameOverEl = document.getElementById('game-over');
+        if (gameOverEl) {
+            gameOverEl.style.display = 'flex';
+        }
+        
+        if (msgEl) {
+            msgEl.innerText = (side === "chess" ? "Cờ Vua" : "Cờ Tướng") + " hết thời gian!";
+            msgEl.style.color = '#e74c3c';
+        }
+        
+        drawBoard();
+    }
+    
+    function resetTimers() {
+        chessTimer = TIMER_DURATION;
+        xiangqiTimer = TIMER_DURATION;
+        stopTimer();
+        updateTimerDisplay();
+        
+        // Hiển thị timer khi game bắt đầu
+        if (chessTimerEl) chessTimerEl.style.display = 'flex';
+        if (xiangqiTimerEl) xiangqiTimerEl.style.display = 'flex';
+    }
+    
     function updateStatusUI(turn, _pieces) {
         turnBadge.innerText = turn === "chess" ? "Lượt: Cờ Vua" : "Lượt: Cờ Tướng";
         turnBadge.style.background = turn === "chess" ? "#fff" : "#cc0000";
         turnBadge.style.color = turn === "chess" ? "#000" : "#fff";
+        
+        // Cập nhật timer display và highlight timer đang active
+        updateTimerDisplay();
+        if (chessTimerEl && xiangqiTimerEl) {
+            if (turn === "chess") {
+                chessTimerEl.classList.add('active');
+                xiangqiTimerEl.classList.remove('active');
+            } else {
+                xiangqiTimerEl.classList.add('active');
+                chessTimerEl.classList.remove('active');
+            }
+        }
         
         // Luôn kiểm tra và hiển thị thông báo chiếu cho cả 2 bên
         const chessInCheck = isKingInCheck("chess", _pieces);

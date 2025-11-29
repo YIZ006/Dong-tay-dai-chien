@@ -2059,14 +2059,32 @@
                 }
             });
             
-            // Show who goes first
+            // Show who goes first with dice comparison
             if (firstTurnPlayer && diceResults) {
                 const resultEl = document.getElementById('dice-result-text');
                 if (resultEl) {
                     const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
                     const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
                     const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
-                    resultEl.innerHTML += `<br><br>🎯 Player 1: ${player1Result} | Player 2: ${player2Result}<br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
+                    
+                    // Xác định ai là player 1 và player 2
+                    const myPlayer = playersList.find(p => p.id === playerId);
+                    const isPlayer1 = myPlayer && playersList.indexOf(myPlayer) === 0;
+                    const myResult = isPlayer1 ? player1Result : player2Result;
+                    const otherResult = isPlayer1 ? player2Result : player1Result;
+                    const otherPlayerName = isPlayer1 ? 'Player 2' : 'Player 1';
+                    
+                    // So sánh kết quả
+                    let comparisonText = '';
+                    if (myResult > otherResult) {
+                        comparisonText = '<span style="color: #2ecc71; font-weight: bold;">✓ Bạn thắng!</span>';
+                    } else if (myResult < otherResult) {
+                        comparisonText = '<span style="color: #e74c3c; font-weight: bold;">✗ Bạn thua!</span>';
+                    } else {
+                        comparisonText = '<span style="color: #f39c12; font-weight: bold;">= Hòa!</span>';
+                    }
+                    
+                    resultEl.innerHTML = `<br><br>🎲 <strong>Bạn</strong>: <strong>${myResult}</strong> | <strong>${otherPlayerName}</strong>: <strong>${otherResult}</strong><br>${comparisonText}<br><br>⏳ Đang so sánh kết quả...`;
                 }
             }
             
@@ -2079,8 +2097,38 @@
             
             console.log('Starting game with:', { currentTurn, playerSide, isOnlineGame, gameRoomId });
             
-            // Khởi tạo game
-            startOnlineGame(currentTurn);
+            // Delay 5 giây trước khi bắt đầu game để hiển thị kết quả so xúc sắc
+            setTimeout(() => {
+                // Cập nhật lại hiển thị kết quả cuối cùng
+                if (firstTurnPlayer && diceResults) {
+                    const resultEl = document.getElementById('dice-result-text');
+                    if (resultEl) {
+                        const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
+                        const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
+                        const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
+                        
+                        const myPlayer = playersList.find(p => p.id === playerId);
+                        const isPlayer1 = myPlayer && playersList.indexOf(myPlayer) === 0;
+                        const myResult = isPlayer1 ? player1Result : player2Result;
+                        const otherResult = isPlayer1 ? player2Result : player1Result;
+                        const otherPlayerName = isPlayer1 ? 'Player 2' : 'Player 1';
+                        
+                        let comparisonText = '';
+                        if (myResult > otherResult) {
+                            comparisonText = '<span style="color: #2ecc71; font-weight: bold;">✓ Bạn thắng!</span>';
+                        } else if (myResult < otherResult) {
+                            comparisonText = '<span style="color: #e74c3c; font-weight: bold;">✗ Bạn thua!</span>';
+                        } else {
+                            comparisonText = '<span style="color: #f39c12; font-weight: bold;">= Hòa!</span>';
+                        }
+                        
+                        resultEl.innerHTML = `<br><br>🎲 <strong>Bạn</strong>: <strong>${myResult}</strong> | <strong>${otherPlayerName}</strong>: <strong>${otherResult}</strong><br>${comparisonText}<br><br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
+                    }
+                }
+                
+                // Khởi tạo game sau delay
+                startOnlineGame(currentTurn);
+            }, 5000);
         });
         
         socket.on('gameStateUpdated', ({ gameState }) => {
@@ -2667,6 +2715,8 @@
                 roomCode: gameRoomId, 
                 diceResult: diceResult 
             });
+            
+            dice.classList.remove('rolling');
         }, 1500);
     }
     
@@ -2678,9 +2728,31 @@
             if (!resultEl) return;
             
             if (diceRolled) {
-                // Both players have rolled, update display
+                // Both players have rolled, update display with comparison
                 const currentText = resultEl.innerHTML;
-                resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong>`);
+                // Lấy số xúc sắc của mình từ text hiện tại
+                const myMatch = currentText.match(/<strong>(\d+)<\/strong>/);
+                const myResult = myMatch ? parseInt(myMatch[1]) : 0;
+                const otherResult = diceResult;
+                
+                // So sánh và hiển thị kết quả
+                let comparisonText = '';
+                if (myResult > otherResult) {
+                    comparisonText = '<br><span style="color: #2ecc71; font-weight: bold;">✓ Bạn thắng!</span>';
+                } else if (myResult < otherResult) {
+                    comparisonText = '<br><span style="color: #e74c3c; font-weight: bold;">✗ Bạn thua!</span>';
+                } else {
+                    comparisonText = '<br><span style="color: #f39c12; font-weight: bold;">= Hòa!</span>';
+                }
+                
+                resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: <strong>${otherResult}</strong>${comparisonText}<br><br>⏳ Đang so sánh kết quả...`);
+                
+                // Delay 5 giây trước khi bắt đầu game
+                setTimeout(() => {
+                    if (resultEl) {
+                        resultEl.innerHTML = currentText.replace('Đang chờ đối thủ...', `<br>🎲 <strong>${playerName}</strong>: <strong>${otherResult}</strong>${comparisonText}`);
+                    }
+                }, 5000);
             } else {
                 // Other player rolled first
                 resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br>Đến lượt bạn tung xúc xắc!`;
@@ -2781,6 +2853,7 @@
         
         // Reset timer
         resetTimers();
+        firstMoveMade = false; // Reset flag nước đi đầu tiên
         
         // Ẩn timer display
         if (chessTimerEl) chessTimerEl.style.display = 'none';
@@ -3043,6 +3116,7 @@
     let xiangqiTimer = TIMER_DURATION; // Thời gian còn lại của Cờ Tướng (giây)
     let timerInterval = null; // Interval cho timer
     let timerPaused = false; // Timer có đang tạm dừng không
+    let firstMoveMade = false; // Đã có nước đi đầu tiên chưa (timer chỉ bắt đầu sau nước đi đầu tiên)
     
     // ========== SPECIAL TILE SYSTEM ==========
     const SPECIAL_TILE = { r: 0, c: 8 }; // Ô đặc biệt ở góc trên bên phải, bên cạnh Xe cờ Vua
@@ -4534,6 +4608,11 @@
         // Dừng timer cũ nếu có
         stopTimer();
         
+        // Timer chỉ bắt đầu sau khi có nước đi đầu tiên
+        if (!firstMoveMade) {
+            return;
+        }
+        
         // Chỉ chạy timer khi game đang diễn ra và không phải đang review
         if (isGameOver || isReviewing || pendingPromotion) {
             return;
@@ -4541,7 +4620,7 @@
         
         // Bắt đầu timer cho lượt hiện tại
         timerInterval = setInterval(() => {
-            if (isGameOver || isReviewing || pendingPromotion || timerPaused) {
+            if (isGameOver || isReviewing || pendingPromotion || timerPaused || !firstMoveMade) {
                 return;
             }
             
@@ -4601,6 +4680,7 @@
     function resetTimers() {
         chessTimer = TIMER_DURATION;
         xiangqiTimer = TIMER_DURATION;
+        firstMoveMade = false; // Reset flag nước đi đầu tiên
         stopTimer();
         updateTimerDisplay();
         
@@ -4829,6 +4909,13 @@
             // Kiểm tra nếu di chuyển đến ô đặc biệt
             if (r === SPECIAL_TILE.r && c === SPECIAL_TILE.c) {
                 handleSpecialTileActivation(selectedPiece);
+            }
+
+            // Đánh dấu đã có nước đi đầu tiên để bắt đầu timer
+            if (!firstMoveMade) {
+                firstMoveMade = true;
+                // Bắt đầu timer sau nước đi đầu tiên
+                setTimeout(() => startTimer(), 100);
             }
 
             finishTurn();

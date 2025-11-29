@@ -313,6 +313,84 @@ io.on('connection', (socket) => {
     });
     
     // Update game state
+    // Resign game
+    socket.on('resignGame', ({ roomCode }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'playing') return;
+        
+        const player = room.players.get(socket.id);
+        if (!player) return;
+        
+        // Broadcast resignation to all players
+        io.to(roomCode).emit('playerResigned', {
+            playerId: socket.id,
+            playerName: player.name
+        });
+        
+        room.status = 'finished';
+        console.log(`Player ${player.name} resigned in room: ${roomCode}`);
+    });
+    
+    // Offer draw
+    socket.on('offerDraw', ({ roomCode }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'playing') return;
+        
+        const player = room.players.get(socket.id);
+        if (!player) return;
+        
+        // Send draw offer to other player
+        const playerIds = Array.from(room.players.keys());
+        const otherPlayerId = playerIds.find(id => id !== socket.id);
+        
+        if (otherPlayerId) {
+            socket.to(otherPlayerId).emit('drawOffered', {
+                playerId: socket.id,
+                playerName: player.name
+            });
+            console.log(`Player ${player.name} offered draw in room: ${roomCode}`);
+        }
+    });
+    
+    // Accept draw
+    socket.on('acceptDraw', ({ roomCode }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'playing') return;
+        
+        const player = room.players.get(socket.id);
+        if (!player) return;
+        
+        // Broadcast draw accepted to all players
+        io.to(roomCode).emit('drawAccepted', {
+            playerId: socket.id,
+            playerName: player.name
+        });
+        
+        room.status = 'finished';
+        console.log(`Draw accepted in room: ${roomCode}`);
+    });
+    
+    // Reject draw
+    socket.on('rejectDraw', ({ roomCode }) => {
+        const room = rooms.get(roomCode);
+        if (!room || room.status !== 'playing') return;
+        
+        const player = room.players.get(socket.id);
+        if (!player) return;
+        
+        // Notify the offerer
+        const playerIds = Array.from(room.players.keys());
+        const offererId = playerIds.find(id => id !== socket.id);
+        
+        if (offererId) {
+            socket.to(offererId).emit('drawRejected', {
+                playerId: socket.id,
+                playerName: player.name
+            });
+            console.log(`Draw rejected in room: ${roomCode}`);
+        }
+    });
+    
     socket.on('updateGameState', ({ roomCode, gameState }) => {
         const room = rooms.get(roomCode);
         if (!room) {

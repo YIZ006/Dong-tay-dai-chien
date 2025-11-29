@@ -235,8 +235,43 @@
 
         .move-dot { width: 16px; height: 16px; background: rgba(0, 255, 0, 0.6); border-radius: 50%; position: absolute; z-index: 20; pointer-events: none; box-shadow: 0 0 5px #fff; }
 
-        #status-bar { display: flex; gap: 20px; align-items: center; margin-bottom: 5px; }
+        #status-bar { display: flex; gap: 20px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
         .badge { padding: 5px 25px; border-radius: 15px; font-weight: bold; border: 2px solid #fff; width: 250px; text-align: center; font-size: 1.1rem; }
+        .game-action-btn {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: 2px solid;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .game-action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .btn-resign {
+            background: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+        }
+        .btn-resign:hover {
+            background: #c0392b;
+        }
+        .btn-draw {
+            background: #f39c12;
+            color: white;
+            border-color: #e67e22;
+        }
+        .btn-draw:hover {
+            background: #e67e22;
+        }
+        .game-action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         
         /* Chat Box Styles */
         #chat-container {
@@ -860,6 +895,14 @@
     <div id="status-bar">
         <div id="turn-badge" class="badge">...</div>
         <div id="message" style="color: red; font-weight: bold;"></div>
+        <div style="display: flex; gap: 10px; margin-left: auto;">
+            <button id="btn-resign" class="game-action-btn btn-resign" onclick="resignGame()" title="Đầu hàng">
+                🏳️ Đầu Hàng
+            </button>
+            <button id="btn-draw" class="game-action-btn btn-draw" onclick="offerDraw()" title="Xin hòa">
+                🤝 Xin Hòa
+            </button>
+        </div>
     </div>
     
     <!-- Chat Button -->
@@ -1466,6 +1509,66 @@
         // Chat message received
         socket.on('chatMessage', ({ playerId: senderId, playerName, message, timestamp }) => {
             addChatMessage(senderId === playerId, playerName, message, timestamp);
+        });
+        
+        // Resign event
+        socket.on('playerResigned', ({ playerId: resignedPlayerId, playerName }) => {
+            if (isGameOver) return;
+            
+            isGameOver = true;
+            const winner = resignedPlayerId === playerId ? (playerSide === 'chess' ? 'xiangqi' : 'chess') : playerSide;
+            const winnerText = document.getElementById('winner-text');
+            if (winnerText) {
+                winnerText.innerText = (winner === playerSide ? 'BẠN' : 'ĐỐI THỦ') + ' THẮNG!\n(' + playerName + ' đã đầu hàng)';
+            }
+            const gameOverEl = document.getElementById('game-over');
+            if (gameOverEl) {
+                gameOverEl.style.display = 'flex';
+            }
+            if (msgEl) {
+                msgEl.innerText = playerName + ' đã đầu hàng!';
+                msgEl.style.color = '#e74c3c';
+            }
+        });
+        
+        // Draw offer events
+        socket.on('drawOffered', ({ playerId: offererId, playerName }) => {
+            if (offererId !== playerId && !isGameOver) {
+                const accept = confirm(`${playerName} muốn hòa cờ. Bạn có đồng ý không?`);
+                if (accept) {
+                    socket.emit('acceptDraw', { roomCode: gameRoomId });
+                } else {
+                    socket.emit('rejectDraw', { roomCode: gameRoomId });
+                }
+            }
+        });
+        
+        socket.on('drawAccepted', ({ playerId: accepterId, playerName }) => {
+            if (isGameOver) return;
+            
+            isGameOver = true;
+            const winnerText = document.getElementById('winner-text');
+            if (winnerText) {
+                winnerText.innerText = 'HÒA CỜ!';
+            }
+            const gameOverEl = document.getElementById('game-over');
+            if (gameOverEl) {
+                gameOverEl.style.display = 'flex';
+            }
+            if (msgEl) {
+                msgEl.innerText = 'Cả hai người chơi đã đồng ý hòa cờ!';
+                msgEl.style.color = '#f39c12';
+            }
+        });
+        
+        socket.on('drawRejected', ({ playerId: rejecterId, playerName }) => {
+            if (msgEl) {
+                msgEl.innerText = playerName + ' đã từ chối hòa cờ.';
+                msgEl.style.color = '#e74c3c';
+                setTimeout(() => {
+                    if (msgEl) msgEl.innerText = '';
+                }, 3000);
+            }
         });
     
     }
@@ -2176,6 +2279,74 @@
         socket.emit('updateGameState', { roomCode: gameRoomId, gameState });
     }
     
+    // Resign game function
+    function resignGame() {
+        if (isGameOver) return;
+        
+        if (!confirm('Bạn có chắc chắn muốn đầu hàng không?')) {
+            return;
+        }
+        
+        if (isOnlineGame && gameRoomId) {
+            // Online game - send to server
+            socket.emit('resignGame', { roomCode: gameRoomId });
+        } else {
+            // Offline/Bot game - local resign
+            isGameOver = true;
+            const winner = currentTurn === 'chess' ? 'xiangqi' : 'chess';
+            const winnerText = document.getElementById('winner-text');
+            if (winnerText) {
+                winnerText.innerText = (winner === playerSide ? 'BẠN' : 'ĐỐI THỦ') + ' THẮNG!\n(Bạn đã đầu hàng)';
+            }
+            const gameOverEl = document.getElementById('game-over');
+            if (gameOverEl) {
+                gameOverEl.style.display = 'flex';
+            }
+            if (msgEl) {
+                msgEl.innerText = 'Bạn đã đầu hàng!';
+                msgEl.style.color = '#e74c3c';
+            }
+            drawBoard();
+        }
+    }
+    
+    // Offer draw function
+    function offerDraw() {
+        if (isGameOver) return;
+        
+        if (isOnlineGame && gameRoomId) {
+            // Online game - send to server
+            socket.emit('offerDraw', { roomCode: gameRoomId });
+            if (msgEl) {
+                msgEl.innerText = 'Đã gửi yêu cầu hòa cờ...';
+                msgEl.style.color = '#f39c12';
+                setTimeout(() => {
+                    if (msgEl && msgEl.innerText === 'Đã gửi yêu cầu hòa cờ...') {
+                        msgEl.innerText = '';
+                    }
+                }, 3000);
+            }
+        } else {
+            // Offline/Bot game - auto accept
+            if (confirm('Bạn muốn hòa cờ không?')) {
+                isGameOver = true;
+                const winnerText = document.getElementById('winner-text');
+                if (winnerText) {
+                    winnerText.innerText = 'HÒA CỜ!';
+                }
+                const gameOverEl = document.getElementById('game-over');
+                if (gameOverEl) {
+                    gameOverEl.style.display = 'flex';
+                }
+                if (msgEl) {
+                    msgEl.innerText = 'Hòa cờ!';
+                    msgEl.style.color = '#f39c12';
+                }
+                drawBoard();
+            }
+        }
+    }
+    
     // --- AUDIO ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
@@ -2708,6 +2879,16 @@
         turnBadge.style.background = turn === "chess" ? "#fff" : "#cc0000";
         turnBadge.style.color = turn === "chess" ? "#000" : "#fff";
         msgEl.innerText = isKingInCheck(turn, _pieces) ? "⚠️ CHIẾU TƯỚNG!" : "";
+        
+        // Enable/disable action buttons based on game state
+        const btnResign = document.getElementById('btn-resign');
+        const btnDraw = document.getElementById('btn-draw');
+        if (btnResign) {
+            btnResign.disabled = isGameOver || isReviewing;
+        }
+        if (btnDraw) {
+            btnDraw.disabled = isGameOver || isReviewing;
+        }
     }
 
     // --- INTERACTION ---

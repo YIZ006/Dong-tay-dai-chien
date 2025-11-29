@@ -751,7 +751,15 @@
         </div>
         
         <div id="room-info" style="display: none;">
-            <div class="room-code" id="room-code-display">ABC123</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                <div class="room-code" id="room-code-display">ABC123</div>
+                <button id="copy-room-code" onclick="copyRoomCode()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem;" title="Copy mã phòng">
+                    📋 Copy
+                </button>
+            </div>
+            <div id="copy-success-msg" style="display: none; color: #2ecc71; text-align: center; margin-bottom: 10px; font-size: 0.9rem;">
+                ✓ Đã copy mã phòng!
+            </div>
             
             <!-- Player Info -->
             <div class="player-info">
@@ -1305,6 +1313,9 @@
             document.getElementById('player1-choice').style.display = 'none';
             document.getElementById('dice-section').style.display = 'block';
             
+            // Reset dice state để cả 2 player đều có thể tung
+            diceRolled = false;
+            
             // Update player sides
             playersList.forEach((p, idx) => {
                 const sideText = p.side === 'chess' ? '🏰 Cờ Vua (Trắng)' : '⛩️ Cờ Tướng (Đỏ)';
@@ -1318,10 +1329,30 @@
                     document.getElementById('player2-side').textContent = sideText;
                 }
             });
+            
+            // Đảm bảo dice có thể click được
+            const dice = document.getElementById('dice');
+            if (dice) {
+                dice.style.pointerEvents = 'auto';
+                dice.style.cursor = 'pointer';
+                dice.onclick = rollDice;
+            }
         });
         
         socket.on('gameStarted', ({ players: playersList, currentTurn, diceResults, firstTurnPlayer }) => {
-            document.getElementById('dice-section').style.display = 'none';
+            console.log('gameStarted event received:', { playersList, currentTurn, diceResults, firstTurnPlayer });
+            
+            // Hide dice section
+            const diceSection = document.getElementById('dice-section');
+            if (diceSection) {
+                diceSection.style.display = 'none';
+            }
+            
+            // Hide room info
+            const roomInfo = document.getElementById('room-info');
+            if (roomInfo) {
+                roomInfo.style.display = 'none';
+            }
             
             const myPlayer = playersList.find(p => p.id === playerId);
             if (myPlayer) {
@@ -1333,27 +1364,37 @@
                 const sideText = p.side === 'chess' ? '🏰 Cờ Vua (Trắng)' : '⛩️ Cờ Tướng (Đỏ)';
                 const isMe = p.id === playerId;
                 if (idx === 0) {
-                    document.getElementById('player1-name').textContent = (isMe ? 'Bạn' : p.name) || 'Người chơi 1';
-                    document.getElementById('player1-side').textContent = sideText;
+                    const player1Name = document.getElementById('player1-name');
+                    const player1Side = document.getElementById('player1-side');
+                    if (player1Name) player1Name.textContent = (isMe ? 'Bạn' : p.name) || 'Người chơi 1';
+                    if (player1Side) player1Side.textContent = sideText;
                 } else if (idx === 1) {
-                    document.getElementById('player2-name').textContent = (isMe ? 'Bạn' : p.name) || 'Người chơi 2';
-                    document.getElementById('player2-side').textContent = sideText;
+                    const player2Name = document.getElementById('player2-name');
+                    const player2Side = document.getElementById('player2-side');
+                    if (player2Name) player2Name.textContent = (isMe ? 'Bạn' : p.name) || 'Người chơi 2';
+                    if (player2Side) player2Side.textContent = sideText;
                 }
             });
             
             // Show who goes first
             if (firstTurnPlayer && diceResults) {
                 const resultEl = document.getElementById('dice-result-text');
-                const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
-                const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
-                const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
-                resultEl.innerHTML += `<br><br>🎯 Player 1: ${player1Result} | Player 2: ${player2Result}<br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
+                if (resultEl) {
+                    const firstTurnSide = currentTurn === 'chess' ? '🏰 Cờ Vua' : '⛩️ Cờ Tướng';
+                    const player1Result = diceResults.player1?.diceResult || diceResults.player1?.diceResult || 0;
+                    const player2Result = diceResults.player2?.diceResult || diceResults.player2?.diceResult || 0;
+                    resultEl.innerHTML += `<br><br>🎯 Player 1: ${player1Result} | Player 2: ${player2Result}<br><strong>${firstTurnPlayer}</strong> đi trước (${firstTurnSide})`;
+                }
             }
             
             // Hiển thị chat khi game bắt đầu
-            document.getElementById('chat-button').classList.add('show');
-            document.getElementById('chat-container').classList.add('show');
+            const chatButton = document.getElementById('chat-button');
+            const chatContainer = document.getElementById('chat-container');
+            if (chatButton) chatButton.classList.add('show');
+            if (chatContainer) chatContainer.classList.add('show');
             chatMinimized = false;
+            
+            console.log('Starting game with:', { currentTurn, playerSide, isOnlineGame, gameRoomId });
             
             // Khởi tạo game
             startOnlineGame(currentTurn);
@@ -1822,10 +1863,30 @@
     let otherPlayerDiceResult = null;
     
     function rollDice() {
-        if (diceRolled || !isOnlineGame || !gameRoomId) return;
+        console.log('rollDice called:', { diceRolled, isOnlineGame, gameRoomId, isHost, playerId });
+        
+        if (diceRolled) {
+            console.log('Dice already rolled');
+            return;
+        }
+        
+        if (!isOnlineGame) {
+            console.log('Not online game');
+            return;
+        }
+        
+        if (!gameRoomId) {
+            console.log('No game room ID');
+            return;
+        }
         
         const dice = document.getElementById('dice');
         const resultEl = document.getElementById('dice-result-text');
+        
+        if (!dice || !resultEl) {
+            console.log('Dice elements not found');
+            return;
+        }
         
         dice.classList.add('rolling');
         dice.style.pointerEvents = 'none';
@@ -1839,6 +1900,8 @@
             resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br>Đang chờ đối thủ...`;
             resultEl.style.display = 'block';
             
+            console.log('Sending dice result to server:', { roomCode: gameRoomId, diceResult });
+            
             // Send result to server (chỉ gửi 1 kết quả)
             socket.emit('diceRollResult', { 
                 roomCode: gameRoomId, 
@@ -1849,8 +1912,11 @@
     
     // Listen for other player's dice result
     socket.on('diceRolled', ({ playerId: otherPlayerId, playerName, diceResult }) => {
+        console.log('diceRolled event received:', { otherPlayerId, playerId, playerName, diceResult, diceRolled });
         if (otherPlayerId !== playerId) {
             const resultEl = document.getElementById('dice-result-text');
+            if (!resultEl) return;
+            
             if (diceRolled) {
                 // Both players have rolled, update display
                 const currentText = resultEl.innerHTML;
@@ -1859,13 +1925,67 @@
                 // Other player rolled first
                 resultEl.innerHTML = `🎲 <strong>${playerName}</strong>: <strong>${diceResult}</strong><br>Đến lượt bạn tung xúc xắc!`;
                 resultEl.style.display = 'block';
+                
+                // Đảm bảo dice có thể click được
+                const dice = document.getElementById('dice');
+                if (dice) {
+                    dice.style.pointerEvents = 'auto';
+                    dice.style.cursor = 'pointer';
+                    dice.onclick = rollDice;
+                }
             }
         }
     });
     
+    // Copy room code function
+    function copyRoomCode() {
+        const roomCode = document.getElementById('room-code-display').textContent;
+        if (!roomCode || roomCode === 'ABC123') {
+            alert('Chưa có mã phòng!');
+            return;
+        }
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(roomCode).then(() => {
+            // Show success message
+            const successMsg = document.getElementById('copy-success-msg');
+            if (successMsg) {
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 2000);
+            }
+        }).catch(err => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = roomCode;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const successMsg = document.getElementById('copy-success-msg');
+                if (successMsg) {
+                    successMsg.style.display = 'block';
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                    }, 2000);
+                }
+            } catch (err) {
+                alert('Không thể copy mã phòng. Mã phòng: ' + roomCode);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+    
     function startOnlineGame(firstTurn) {
+        console.log('startOnlineGame called:', { firstTurn, isOnlineGame, isBotMode });
+        
         isOnlineGame = true;
         isBotMode = false; // Đảm bảo không phải bot mode
+        
+        // Initialize game state
         pieces = JSON.parse(JSON.stringify(INITIAL_SETUP));
         deadChess = [];
         deadXQ = [];
@@ -1873,9 +1993,25 @@
         isGameOver = false;
         lastMove = null;
         enPassantTarget = null;
+        selectedPiece = null;
+        validMoves = [];
         
-        document.getElementById('start-screen').style.display = 'none';
+        // Hide start screen and show game board
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+            startScreen.style.display = 'none';
+        }
+        
+        const gameBoard = document.getElementById('game-board');
+        if (gameBoard) {
+            gameBoard.style.display = 'block';
+        }
+        
+        // Draw the board
+        console.log('Drawing board...');
         drawBoard();
+        
+        console.log('Game started successfully:', { currentTurn, playerSide, piecesCount: pieces.length });
     }
     
     function syncGameState() {

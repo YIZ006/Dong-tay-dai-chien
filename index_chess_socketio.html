@@ -2712,26 +2712,108 @@
             }
         }
         
-        // Ưu tiên các nước đi có thể ăn quân đối thủ
-        const captureMoves = allMoves.filter(({ move }) => {
-            return pieces.some(p => p.r === move.r && p.c === move.c && p.side !== botSide);
+        // Đánh giá và sắp xếp các nước đi theo điểm số
+        const scoredMoves = allMoves.map(({ piece, move }) => {
+            let score = 0;
+            
+            // 1. Kiểm tra chiếu bí - điểm cao nhất
+            const testPieces = JSON.parse(JSON.stringify(pieces));
+            const testPiece = testPieces.find(p => p.r === piece.r && p.c === piece.c);
+            const targetPiece = testPieces.find(p => p.r === move.r && p.c === move.c);
+            
+            if (targetPiece && targetPiece.side !== botSide) {
+                testPieces.splice(testPieces.indexOf(targetPiece), 1);
+            }
+            testPiece.r = move.r;
+            testPiece.c = move.c;
+            
+            const opponentSide = botSide === "chess" ? "xiangqi" : "chess";
+            // Kiểm tra chiếu với testPieces
+            if (isKingInCheck(opponentSide, testPieces)) {
+                // Kiểm tra xem có phải chiếu bí không (tất cả nước đi đều không hợp lệ)
+                let opponentPieces = testPieces.filter(p => p.side === opponentSide);
+                let hasValidMove = false;
+                for (let oppPiece of opponentPieces) {
+                    let moves = getPseudoMoves(oppPiece, testPieces);
+                    for (let m of moves) {
+                        // Test move
+                        let oldR = oppPiece.r, oldC = oppPiece.c;
+                        let capIdx = testPieces.findIndex(t => t.r === m.r && t.c === m.c);
+                        let capPiece = null;
+                        if (capIdx !== -1) { capPiece = testPieces[capIdx]; testPieces.splice(capIdx, 1); }
+                        oppPiece.r = m.r; oppPiece.c = m.c;
+                        let safe = !isKingInCheck(opponentSide, testPieces);
+                        oppPiece.r = oldR; oppPiece.c = oldC;
+                        if (capPiece) testPieces.splice(capIdx, 0, capPiece);
+                        if (safe) {
+                            hasValidMove = true;
+                            break;
+                        }
+                    }
+                    if (hasValidMove) break;
+                }
+                if (!hasValidMove) {
+                    score += 10000; // Chiếu bí - điểm cao nhất
+                } else {
+                    score += 500; // Chiếu - điểm cao
+                }
+            }
+            
+            // 2. Ăn quân đối thủ - tính theo giá trị
+            if (targetPiece && targetPiece.side !== botSide) {
+                const captureValue = getPieceValue(targetPiece);
+                const attackerValue = getPieceValue(piece);
+                // Ưu tiên ăn quân giá trị cao, nhưng tránh đổi quân giá trị cao hơn
+                if (captureValue >= attackerValue) {
+                    score += captureValue * 100; // Ăn quân có giá trị bằng hoặc cao hơn
+                } else {
+                    score += captureValue * 50; // Ăn quân có giá trị thấp hơn
+                }
+            }
+            
+            // 3. Tránh để quân bị ăn - kiểm tra sau khi đi
+            const wouldBeAttacked = isSquareAttacked(move.r, move.c, botSide, testPieces);
+            if (wouldBeAttacked) {
+                score -= getPieceValue(piece) * 30; // Trừ điểm nếu quân có thể bị ăn
+            }
+            
+            // 4. Kiểm soát trung tâm - điểm bonus
+            const centerBonus = getCenterControl(move.r, move.c);
+            score += centerBonus;
+            
+            // 5. Phát triển quân - di chuyển quân từ hàng đầu
+            if (piece.side === "chess") {
+                if (piece.r === 0 || piece.r === 1) {
+                    score += 10; // Phát triển quân cờ Vua
+                }
+            } else {
+                if (piece.r === 9 || piece.r === 8 || piece.r === 7) {
+                    score += 10; // Phát triển quân cờ Tướng
+                }
+            }
+            
+            // 6. Tấn công quân đối thủ - điểm bonus
+            const attackScore = getAttackScore(move.r, move.c, opponentSide, testPieces);
+            score += attackScore * 5;
+            
+            // 7. Bảo vệ quân của mình - điểm bonus
+            const defenseScore = getDefenseScore(move.r, move.c, botSide, testPieces);
+            score += defenseScore * 3;
+            
+            return { piece, move, score };
         });
         
-        // Chọn nước đi
+        // Sắp xếp theo điểm số giảm dần
+        scoredMoves.sort((a, b) => b.score - a.score);
+        
+        // Chọn nước đi tốt nhất (có thể thêm một chút ngẫu nhiên cho top 3 nước đi tốt nhất)
         let chosenMove;
-        if (captureMoves.length > 0) {
-            // Ưu tiên ăn quân có giá trị cao hơn
-            captureMoves.sort((a, b) => {
-                const pieceA = pieces.find(p => p.r === a.move.r && p.c === a.move.c);
-                const pieceB = pieces.find(p => p.r === b.move.r && p.c === b.move.c);
-                const valueA = getPieceValue(pieceA);
-                const valueB = getPieceValue(pieceB);
-                return valueB - valueA; // Sắp xếp giảm dần
-            });
-            chosenMove = captureMoves[0];
+        const topMoves = scoredMoves.filter(m => m.score >= scoredMoves[0].score - 50); // Top moves gần bằng nhau
+        if (topMoves.length > 1 && scoredMoves[0].score < 500) {
+            // Nếu không có nước đi quá tốt, chọn ngẫu nhiên trong top moves
+            chosenMove = topMoves[Math.floor(Math.random() * Math.min(topMoves.length, 3))];
         } else {
-            // Chọn ngẫu nhiên một nước đi hợp lệ
-            chosenMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+            chosenMove = scoredMoves[0]; // Chọn nước đi tốt nhất
         }
         
         // Thực hiện nước đi
@@ -2825,6 +2907,62 @@
         };
         return values[piece.type] || 0;
     }
+    
+    // Hàm helper để kiểm tra ô có bị tấn công không
+    // Hàm tính điểm kiểm soát trung tâm
+    function getCenterControl(r, c) {
+        // Trung tâm bàn cờ là các ô quanh vị trí (4-5, 4-5)
+        const centerRows = [4, 5];
+        const centerCols = [3, 4, 5, 6];
+        
+        if (centerRows.includes(r) && centerCols.includes(c)) {
+            return 15; // Ô trung tâm chính
+        } else if (Math.abs(r - 4.5) <= 2 && Math.abs(c - 4.5) <= 2) {
+            return 8; // Ô gần trung tâm
+        }
+        return 0;
+    }
+    
+    // Hàm tính điểm tấn công (số quân đối thủ có thể bị tấn công từ ô này)
+    function getAttackScore(r, c, opponentSide, _pieces = pieces) {
+        let score = 0;
+        const testPieces = JSON.parse(JSON.stringify(_pieces));
+        
+        // Tạo một quân cờ tạm tại vị trí này để kiểm tra
+        const tempPiece = { r, c, side: botSide, type: "queen" }; // Dùng queen để kiểm tra nhiều hướng
+        testPieces.push(tempPiece);
+        
+        const moves = getPseudoMoves(tempPiece, testPieces);
+        for (const move of moves) {
+            const targetPiece = _pieces.find(p => p.r === move.r && p.c === move.c && p.side === opponentSide);
+            if (targetPiece) {
+                score += getPieceValue(targetPiece);
+            }
+        }
+        
+        return score;
+    }
+    
+    // Hàm tính điểm phòng thủ (số quân của mình được bảo vệ từ ô này)
+    function getDefenseScore(r, c, mySide, _pieces = pieces) {
+        let score = 0;
+        const testPieces = JSON.parse(JSON.stringify(_pieces));
+        
+        // Tạo một quân cờ tạm tại vị trí này để kiểm tra
+        const tempPiece = { r, c, side: mySide, type: "queen" };
+        testPieces.push(tempPiece);
+        
+        const moves = getPseudoMoves(tempPiece, testPieces);
+        for (const move of moves) {
+            const targetPiece = _pieces.find(p => p.r === move.r && p.c === move.c && p.side === mySide);
+            if (targetPiece) {
+                score += getPieceValue(targetPiece) * 0.5; // Bảo vệ quân có giá trị
+            }
+        }
+        
+        return score;
+    }
+    
 
     // --- HISTORY ---
     function saveState() {

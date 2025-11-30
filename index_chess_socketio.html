@@ -1141,6 +1141,18 @@
             align-items: center;
             gap: 15px;
         }
+        /* Mobile optimizations for dice section */
+        @media (max-width: 768px) {
+            .dice-container {
+                padding: 15px;
+                margin: 10px auto;
+                max-width: 90%;
+            }
+            .dice-container h3 {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+        }
         .dice {
             width: 80px;
             height: 80px;
@@ -1153,6 +1165,14 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             cursor: pointer;
             transition: transform 0.3s;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+        @media (max-width: 768px) {
+            .dice {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
         }
         .dice.rolling {
             animation: diceRoll 1.5s ease-in-out;
@@ -1603,6 +1623,11 @@
     let isHost = false;
     let isOnlineGame = false;
     
+    // ========== PAGE VISIBILITY & MOBILE HANDLING ==========
+    let isPageVisible = true;
+    let wasConnectedBeforeHidden = false;
+    let reconnectOnVisible = false;
+    
     // ========== GAME MODE SELECTION ==========
     function selectGameMode(mode) {
         // Reset UI
@@ -1825,6 +1850,15 @@
         
         socket.on('reconnect', (attemptNumber) => {
             console.log('Reconnected after', attemptNumber, 'attempts');
+            wasConnectedBeforeHidden = false;
+            reconnectOnVisible = false;
+            
+            // Nếu đang trong game online, sync lại game state
+            if (isOnlineGame && gameRoomId) {
+                // Request game state từ server
+                socket.emit('requestGameState', { roomCode: gameRoomId });
+            }
+            
             if (msgEl) {
                 msgEl.innerText = 'Đã kết nối lại thành công!';
                 msgEl.style.color = '#2ecc71';
@@ -2716,8 +2750,27 @@
             return;
         }
         
+        // Kiểm tra kết nối trước khi tung xúc sắc
+        if (!socket || !socket.connected) {
+            if (msgEl) {
+                msgEl.innerText = 'Mất kết nối! Đang thử kết nối lại...';
+                msgEl.style.color = '#e74c3c';
+            }
+            // Thử reconnect
+            if (socket) {
+                socket.connect();
+            }
+            return;
+        }
+        
         dice.classList.add('rolling');
         dice.style.pointerEvents = 'none';
+        
+        // Disable dice button để tránh double-click
+        const diceSection = document.getElementById('dice-section');
+        if (diceSection) {
+            diceSection.style.pointerEvents = 'none';
+        }
         
         setTimeout(() => {
             // Chỉ tung 1 xúc xắc từ 1-6
@@ -2731,12 +2784,33 @@
             console.log('Sending dice result to server:', { roomCode: gameRoomId, diceResult });
             
             // Send result to server (chỉ gửi 1 kết quả)
-            socket.emit('diceRollResult', { 
-                roomCode: gameRoomId, 
-                diceResult: diceResult 
-            });
+            if (socket && socket.connected) {
+                socket.emit('diceRollResult', { 
+                    roomCode: gameRoomId, 
+                    diceResult: diceResult 
+                });
+            } else {
+                // Nếu mất kết nối, thử lại
+                if (msgEl) {
+                    msgEl.innerText = 'Mất kết nối khi gửi kết quả! Đang thử lại...';
+                    msgEl.style.color = '#e74c3c';
+                }
+                // Retry sau 2 giây
+                setTimeout(() => {
+                    if (socket && socket.connected) {
+                        socket.emit('diceRollResult', { 
+                            roomCode: gameRoomId, 
+                            diceResult: diceResult 
+                        });
+                    }
+                }, 2000);
+            }
             
             dice.classList.remove('rolling');
+            // Re-enable dice section
+            if (diceSection) {
+                diceSection.style.pointerEvents = 'auto';
+            }
         }, 1500);
     }
     
@@ -5402,6 +5476,77 @@
                 selectGameMode('bot');
             }
         }, 100);
+    }
+    
+    // ========== PAGE VISIBILITY & MOBILE HANDLING ==========
+    // Xử lý khi tab/app bị background hoặc foreground
+    document.addEventListener('visibilitychange', function() {
+        isPageVisible = !document.hidden;
+        
+        if (isPageVisible) {
+            // Tab được foreground lại
+            console.log('Page visible - reconnecting if needed');
+            
+            if (isOnlineGame && socket) {
+                // Nếu đang trong game online và socket bị disconnect, reconnect
+                if (!socket.connected) {
+                    console.log('Reconnecting socket after page visible...');
+                    wasConnectedBeforeHidden = true;
+                    reconnectOnVisible = true;
+                    
+                    if (socket.io && socket.io.reconnecting) {
+                        // Đang reconnect, không làm gì
+                    } else {
+                        socket.connect();
+                    }
+                } else {
+                    // Socket vẫn connected, sync lại game state
+                    if (gameRoomId) {
+                        socket.emit('requestGameState', { roomCode: gameRoomId });
+                    }
+                }
+            }
+        } else {
+            // Tab bị background
+            console.log('Page hidden');
+            wasConnectedBeforeHidden = socket && socket.connected;
+        }
+    });
+    
+    // Xử lý khi trang sắp đóng hoặc reload
+    window.addEventListener('beforeunload', function(e) {
+        if (isOnlineGame && socket && socket.connected) {
+            // Thông báo cho server biết player đang rời
+            if (gameRoomId) {
+                socket.emit('leaveRoom', { roomCode: gameRoomId });
+            }
+            socket.disconnect();
+        }
+    });
+    
+    // Xử lý khi app bị pause/resume (mobile)
+    document.addEventListener('pause', function() {
+        console.log('App paused');
+        isPageVisible = false;
+    });
+    
+    document.addEventListener('resume', function() {
+        console.log('App resumed');
+        isPageVisible = true;
+        
+        if (isOnlineGame && socket && !socket.connected) {
+            socket.connect();
+        }
+    });
+    
+    // Prevent page from sleeping on mobile (keep connection alive)
+    let wakeLock = null;
+    if ('wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').then(lock => {
+            wakeLock = lock;
+        }).catch(err => {
+            console.log('Wake lock not supported:', err);
+        });
     }
 </script>
 </body>

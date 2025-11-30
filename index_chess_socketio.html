@@ -18,6 +18,27 @@
             --text-gold: #f1c40f;
         }
         
+        /* Mobile optimizations - giảm kích thước bàn cờ trên Android và iOS */
+        @media (max-width: 768px) {
+            :root {
+                --cell: 32px; /* Giảm từ 60px xuống 32px trên mobile */
+            }
+        }
+        
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            :root {
+                --cell: 28px; /* Giảm thêm cho màn hình nhỏ hơn */
+            }
+        }
+        
+        /* Very small mobile devices */
+        @media (max-width: 360px) {
+            :root {
+                --cell: 24px; /* Giảm tối đa cho màn hình rất nhỏ */
+            }
+        }
+        
         body {
             background: var(--bg-color);
             color: white;
@@ -51,6 +72,15 @@
             display: flex;
             flex-direction: column;
             gap: 3px;
+            max-width: calc(100vw - 20px); /* Không vượt quá màn hình trên mobile */
+            box-sizing: border-box;
+        }
+        
+        @media (max-width: 768px) {
+            #graveyard-bar {
+                width: calc(var(--cell) * 9 + 10px);
+                padding: 3px 6px;
+            }
         }
 
         .grave-row {
@@ -197,15 +227,54 @@
         /* Fix cho mobile - không bị khuất góc bàn cờ */
         @media (max-width: 768px) {
             #board-container {
-                padding: 5px;
-                margin: 5px;
+                padding: 5px 25px 25px 5px; /* Giảm padding để bàn cờ nhỏ hơn */
+                margin: 5px auto; /* Căn giữa */
                 overflow: visible;
+                max-width: calc(100vw - 20px); /* Đảm bảo không vượt quá màn hình */
+                box-sizing: border-box;
             }
             #board {
                 overflow: visible;
+                max-width: 100%;
             }
             body {
-                overflow-x: auto; /* Cho phép scroll ngang nếu cần */
+                overflow-x: hidden; /* Không cho scroll ngang */
+                padding: 5px;
+            }
+            /* Giảm kích thước nhãn trên mobile */
+            .board-label.row-label-right {
+                right: -20px;
+            }
+            .board-label.col-label-bottom {
+                bottom: -20px;
+            }
+        }
+        
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            #board-container {
+                padding: 3px 20px 20px 3px;
+                margin: 3px auto;
+            }
+            .board-label.row-label-right {
+                right: -18px;
+            }
+            .board-label.col-label-bottom {
+                bottom: -18px;
+            }
+        }
+        
+        /* Very small mobile devices */
+        @media (max-width: 360px) {
+            #board-container {
+                padding: 2px 18px 18px 2px;
+                margin: 2px auto;
+            }
+            .board-label.row-label-right {
+                right: -15px;
+            }
+            .board-label.col-label-bottom {
+                bottom: -15px;
             }
         }
         #board {

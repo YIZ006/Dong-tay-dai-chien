@@ -1524,19 +1524,19 @@
                 <div class="rule-box">
                     <h3>🏰 Phe Cờ Vua (Trắng)</h3>
                     <ul>
-                        <li><strong>Luật di chuyển:</strong> Tuân theo luật Cờ Vua quốc tế.</li>
                         <li><strong>Phong cấp Tốt:</strong> Tốt khi đi đến hàng cuối cùng (hàng đáy bên phe đỏ) được phép phong cấp thành: Hậu, Xe, Tượng hoặc Mã.</li>
-                        <li><strong>Đặc quyền:</strong> Quân Cờ Vua không bị giới hạn bởi Sông hay Cung Tướng.</li>
+                        <li><strong>Đặc quyền:</strong> Quân Cờ Vua không bị giới hạn bởi Cung Tướng.</li>
                         <li><strong>Nhập thành:</strong> Được phép nếu Vua và Xe chưa di chuyển và đường đi thoáng.</li>
+                        <li><strong>🌊 Quy tắc qua sông:</strong> Các quân <strong>Hậu</strong>, <strong>Tượng</strong>, <strong>Xe</strong> muốn qua sông (từ một bên sang bên kia) phải <strong>dừng một nước ở hàng sông</strong> (hàng giữa bàn cờ) trước khi tiếp tục sang phần sân bên kia.</li>
                     </ul>
                 </div>
                 <div class="rule-box">
                     <h3>⛩️ Phe Cờ Tướng (Đỏ)</h3>
                     <ul>
-                        <li><strong>Luật di chuyển:</strong> Tuân theo luật Cờ Tướng cơ bản.</li>
                         <li><strong>Tốt:</strong> Qua sông được phép đi ngang và thẳng (mỗi lần 1 ô).</li>
                         <li><strong>Hạn chế:</strong> Tướng và Sĩ không được ra khỏi Cung (ô vuông 3x3). Tượng không được đi qua sông.</li>
                         <li><strong>Cản chân:</strong> Mã và Tượng tuân thủ luật cản chân như bình thường.</li>
+                        <li><strong>🌊 Quy tắc qua sông:</strong> Quân <strong>Xe</strong> muốn qua sông (từ một bên sang bên kia) phải <strong>dừng một nước ở hàng sông</strong> (hàng giữa bàn cờ) trước khi tiếp tục sang phần sân bên kia.</li><li><b>Quân Pháo </b>không bị chịu tác dụng của quy tắc qua sông</li>
                     </ul>
                 </div>
                 <div class="rule-box full-width">
@@ -3163,16 +3163,16 @@
     const xiangqiTimerTextEl = document.getElementById("xiangqi-timer-text");
 
     const INITIAL_SETUP = [
-        { type: "rook", side: "chess", r: 0, c: 0, hasMoved: false }, { type: "knight", side: "chess", r: 0, c: 1 },
-        { type: "bishop", side: "chess", r: 0, c: 2 }, { type: "queen", side: "chess", r: 0, c: 3 },
-        { type: "king", side: "chess", r: 0, c: 4, hasMoved: false }, { type: "bishop", side: "chess", r: 0, c: 5 },
-        { type: "knight", side: "chess", r: 0, c: 6 }, { type: "rook", side: "chess", r: 0, c: 7, hasMoved: false },
+        { type: "rook", side: "chess", r: 0, c: 0, hasMoved: false, atRiver: false }, { type: "knight", side: "chess", r: 0, c: 1 },
+        { type: "bishop", side: "chess", r: 0, c: 2, atRiver: false }, { type: "queen", side: "chess", r: 0, c: 3, atRiver: false },
+        { type: "king", side: "chess", r: 0, c: 4, hasMoved: false }, { type: "bishop", side: "chess", r: 0, c: 5, atRiver: false },
+        { type: "knight", side: "chess", r: 0, c: 6 }, { type: "rook", side: "chess", r: 0, c: 7, hasMoved: false, atRiver: false },
         ...Array.from({ length: 8 }, (_, i) => ({ type: "pawn", side: "chess", r: 1, c: i, hasMoved: false, hasShield: true })),
-        { type: "xe", side: "xiangqi", r: 9, c: 0 }, { type: "mã", side: "xiangqi", r: 9, c: 1 },
+        { type: "xe", side: "xiangqi", r: 9, c: 0, atRiver: false }, { type: "mã", side: "xiangqi", r: 9, c: 1 },
         { type: "tượng", side: "xiangqi", r: 9, c: 2 }, { type: "sĩ", side: "xiangqi", r: 9, c: 3 },
         { type: "tướng", side: "xiangqi", r: 9, c: 4 }, { type: "sĩ", side: "xiangqi", r: 9, c: 5 },
         { type: "tượng", side: "xiangqi", r: 9, c: 6 }, { type: "mã", side: "xiangqi", r: 9, c: 7 },
-        { type: "xe", side: "xiangqi", r: 9, c: 8 },
+        { type: "xe", side: "xiangqi", r: 9, c: 8, atRiver: false },
         { type: "pháo", side: "xiangqi", r: 7, c: 1 }, { type: "pháo", side: "xiangqi", r: 7, c: 7 },
         ...[0,2,4,6,8].map(c => ({ type: "tốt", side: "xiangqi", r: 6, c })),
         // Con tốt cờ vua ở hàng ngang (hàng 1, cột 8) để bảo vệ ô đặc biệt ở góc trên bên phải
@@ -4900,6 +4900,20 @@
             selectedPiece.r = r; selectedPiece.c = c;
             if (selectedPiece.type === "king" || selectedPiece.type === "rook") selectedPiece.hasMoved = true;
             
+            // Cập nhật trạng thái atRiver khi quân di chuyển đến hàng sông
+            const RIVER_ROW = 4;
+            if (selectedPiece.type === "queen" || selectedPiece.type === "bishop" || selectedPiece.type === "rook" || 
+                (selectedPiece.side === "xiangqi" && selectedPiece.type === "xe")) {
+                if (r === RIVER_ROW) {
+                    // Quân đã đến hàng sông, đánh dấu để lượt sau có thể đi hết chức năng
+                    selectedPiece.atRiver = true;
+                } else {
+                    // Nếu rời khỏi hàng sông, reset atRiver về false
+                    // Quân sẽ phải dừng lại ở hàng sông một lần nữa nếu muốn qua sông lại
+                    selectedPiece.atRiver = false;
+                }
+            }
+            
             // Xóa khiên của tốt cờ vua khi di chuyển
             if (selectedPiece.type === "pawn" && selectedPiece.side === "chess") {
                 selectedPiece.hasMoved = true;
@@ -5090,10 +5104,61 @@
             }
         }
         else if (dirs[p.type]) {
+            // Áp dụng quy tắc qua sông cho Queen, Bishop, Rook
+            const isRiverPiece = (p.type === "queen" || p.type === "bishop" || p.type === "rook");
+            const RIVER_ROW = 4; // Hàng sông
+            
             dirs[p.type].forEach(([dr, dc]) => {
                 let nr = p.r+dr, nc = p.c+dc;
                 while (inside(nr, nc)) {
-                    if (isAlly(nr, nc, p.side, _pieces)) break; moves.push({r: nr, c: nc}); if (isOccupied(nr, nc, _pieces)) break; nr += dr; nc += dc;
+                    if (isAlly(nr, nc, p.side, _pieces)) break;
+                    
+                    // Quy tắc qua sông: nếu là quân cần qua sông
+                    if (isRiverPiece) {
+                        const currentSide = p.r < RIVER_ROW ? 'top' : (p.r > RIVER_ROW ? 'bottom' : 'river');
+                        const targetSide = nr < RIVER_ROW ? 'top' : (nr > RIVER_ROW ? 'bottom' : 'river');
+                        const isAtRiver = (p.r === RIVER_ROW || p.atRiver);
+                        
+                        // Nếu quân đang ở một bên sông và muốn đi sang bên kia (qua sông)
+                        if (currentSide !== 'river' && targetSide !== currentSide && targetSide !== 'river') {
+                            // Chỉ cho phép đi đến hàng sông (r=4) và dừng lại ở đó
+                            if (!isAtRiver && nr === RIVER_ROW) {
+                                moves.push({r: nr, c: nc});
+                                // Dừng lại ngay, không được đi tiếp sang bên kia trong cùng lượt
+                                break;
+                            }
+                            // Nếu đã ở sông (từ lượt trước), cho phép đi sang bên kia
+                            else if (isAtRiver && targetSide !== 'river') {
+                                moves.push({r: nr, c: nc});
+                                if (isOccupied(nr, nc, _pieces)) break;
+                            }
+                            // Không cho phép đi qua sông trong một nước nếu chưa ở sông
+                            else {
+                                break;
+                            }
+                        }
+                        // Nếu quân đang ở sông (từ lượt trước), cho phép đi hết chức năng
+                        else if (isAtRiver) {
+                            moves.push({r: nr, c: nc});
+                            if (isOccupied(nr, nc, _pieces)) break;
+                        }
+                        // Nếu quân đang ở một bên và muốn đi trong cùng bên (không qua sông)
+                        else if (currentSide === targetSide) {
+                            moves.push({r: nr, c: nc});
+                            if (isOccupied(nr, nc, _pieces)) break;
+                        }
+                        // Các trường hợp khác
+                        else {
+                            moves.push({r: nr, c: nc});
+                            if (isOccupied(nr, nc, _pieces)) break;
+                        }
+                    } else {
+                        // Quân khác di chuyển bình thường
+                        moves.push({r: nr, c: nc});
+                        if (isOccupied(nr, nc, _pieces)) break;
+                    }
+                    
+                    nr += dr; nc += dc;
                 }
             });
         }
@@ -5102,38 +5167,121 @@
 
     function getXQMoves(p, _pieces) {
         let moves = [];
+        const RIVER_ROW = 4; // Hàng sông
+        
         const checkLine = (dirs, isCannon=false) => {
              dirs.forEach(([dr, dc]) => {
                 let nr = p.r+dr, nc = p.c+dc; let hurdle=false; 
                 while (inside(nr, nc)) {
                     let targetIdx = _pieces.findIndex(t => t.r === nr && t.c === nc);
                     let targetPiece = targetIdx !== -1 ? _pieces[targetIdx] : null;
-
-                    if (!hurdle) {
-                        if (!targetPiece) moves.push({r: nr, c: nc});
-                        else {
-                            if (!isCannon) {
+                    
+                    // Quy tắc qua sông cho Xe
+                    if (p.type === "xe" && !isCannon) {
+                        const currentSide = p.r < RIVER_ROW ? 'top' : (p.r > RIVER_ROW ? 'bottom' : 'river');
+                        const targetSide = nr < RIVER_ROW ? 'top' : (nr > RIVER_ROW ? 'bottom' : 'river');
+                        const isAtRiver = (p.r === RIVER_ROW || p.atRiver);
+                        
+                        // Nếu quân đang ở một bên sông và muốn đi sang bên kia (qua sông)
+                        if (currentSide !== 'river' && targetSide !== currentSide && targetSide !== 'river') {
+                            // Chỉ cho phép đi đến hàng sông (r=4) và dừng lại ở đó
+                            if (!isAtRiver && nr === RIVER_ROW) {
+                                if (!targetPiece) {
+                                    moves.push({r: nr, c: nc});
+                                } else {
+                                    if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                }
+                                // Dừng lại ngay, không được đi tiếp sang bên kia trong cùng lượt
+                                break;
+                            }
+                            // Nếu đã ở sông (từ lượt trước), cho phép đi sang bên kia
+                            else if (isAtRiver && targetSide !== 'river') {
+                                if (!targetPiece) {
+                                    moves.push({r: nr, c: nc});
+                                } else {
+                                    if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                    break;
+                                }
+                            }
+                            // Không cho phép đi qua sông trong một nước nếu chưa ở sông
+                            else {
+                                break;
+                            }
+                        }
+                        // Nếu quân đang ở sông (từ lượt trước), cho phép đi hết chức năng
+                        else if (isAtRiver) {
+                            if (!targetPiece) {
+                                moves.push({r: nr, c: nc});
+                            } else {
                                 if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
                                 break;
+                            }
+                        }
+                        // Nếu quân đang ở một bên và muốn đi trong cùng bên (không qua sông)
+                        else if (currentSide === targetSide) {
+                            if (!targetPiece) {
+                                moves.push({r: nr, c: nc});
                             } else {
-                                // Pháo bắc cầu: cần có 1 quân làm cầu
-                                // Nếu gặp tốt cờ vua chưa đi (có khiên) → không thể bắc cầu
-                                if (targetPiece.side === "chess" && targetPiece.type === "pawn") {
-                                    // Kiểm tra nếu tốt có khiên (chưa đi) → không thể bắc cầu
-                                    if (targetPiece.hasShield !== false) {
-                                        break; // Không thể bắc cầu qua tốt có khiên
+                                if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                break;
+                            }
+                        }
+                        // Các trường hợp khác
+                        else {
+                            if (!hurdle) {
+                                if (!targetPiece) moves.push({r: nr, c: nc});
+                                else {
+                                    if (!isCannon) {
+                                        if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                        break;
                                     } else {
-                                        hurdle = true; // Tốt đã đi → có thể bắc cầu
+                                        // Pháo bắc cầu logic
+                                        if (targetPiece.side === "chess" && targetPiece.type === "pawn") {
+                                            if (targetPiece.hasShield !== false) {
+                                                break;
+                                            } else {
+                                                hurdle = true;
+                                            }
+                                        } else {
+                                            hurdle = true;
+                                        }
                                     }
-                                } else {
-                                    hurdle = true; // Quân khác → có thể bắc cầu
+                                }
+                            } else {
+                                if (targetPiece) {
+                                    if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                    break;
                                 }
                             }
                         }
                     } else {
-                        if (targetPiece) {
-                            if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
-                            break;
+                        // Logic bình thường cho Pháo và các quân khác
+                        if (!hurdle) {
+                            if (!targetPiece) moves.push({r: nr, c: nc});
+                            else {
+                                if (!isCannon) {
+                                    if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                    break;
+                                } else {
+                                    // Pháo bắc cầu: cần có 1 quân làm cầu
+                                    // Nếu gặp tốt cờ vua chưa đi (có khiên) → không thể bắc cầu
+                                    if (targetPiece.side === "chess" && targetPiece.type === "pawn") {
+                                        // Kiểm tra nếu tốt có khiên (chưa đi) → không thể bắc cầu
+                                        if (targetPiece.hasShield !== false) {
+                                            break; // Không thể bắc cầu qua tốt có khiên
+                                        } else {
+                                            hurdle = true; // Tốt đã đi → có thể bắc cầu
+                                        }
+                                    } else {
+                                        hurdle = true; // Quân khác → có thể bắc cầu
+                                    }
+                                }
+                            }
+                        } else {
+                            if (targetPiece) {
+                                if (targetPiece.side !== p.side) moves.push({r: nr, c: nc});
+                                break;
+                            }
                         }
                     }
                     nr += dr; nc += dc;
